@@ -17,6 +17,7 @@ func CreateLexer(content []byte, ext string) (*Lexer, error) {
 	if !supported {
 		return nil, fmt.Errorf("unsupported extension: %s", ext)
 	}
+	fmt.Println("Lexer Initialized")
 	return &Lexer{
 		source: content,
 		pos:    0,
@@ -27,26 +28,32 @@ func CreateLexer(content []byte, ext string) (*Lexer, error) {
 
 // Tokenize input file
 func (lex *Lexer) Tokenize() {
-	var kind Tokenkind = ILLEGAL
 	for lex.isValid() {
+		kind := ILLEGAL
 		start := lex.pos
 		switch ch := lex.peek(); {
 		case isSpace(ch):
-			lex.consumeSpace()
+			lex.pos++
+			continue
 		case isIdent(ch):
 			kind = lex.consumeIdent(start)
 		case isDigit(ch):
 			kind = lex.consumeDigit()
+		case ch == '`':
+			kind = lex.consumeBacktick()
 		case ch == '"':
 			kind = lex.consumeString()
-		case lex.isPunct(ch):
-			kind = lex.consumePunct()
-		case lex.isOperator(ch):
-			kind = lex.consumeOperator()
+		case ch == '\'':
+			kind = lex.consumeSingleQuote()
+		case lex.isPunctOrOper(ch):
+			kind = lex.consumePunctOrOper()
 		default:
-			continue
+			lex.pos++
 		}
 		lex.emitToken(kind, start)
+
+		fmt.Printf("\n text: %s\n", string(lex.source[start:lex.pos]))
+		fmt.Printf("Token: %v, Span(%v, %v)\n", kind, start, lex.pos)
 	}
 
 }
@@ -55,16 +62,12 @@ func (lex *Lexer) isValid() bool {
 	return lex.pos < len(lex.source)
 }
 
-func (lex *Lexer) isPunct(char byte) bool {
-	if _, exists := lex.lang.Literals[string(char)]; exists {
-		return true
-	}
-	return false
-}
-
-func (lex *Lexer) isOperator(char byte) bool {
-	if _, exists := lex.lang.Literals[string(char)]; exists {
-		return true
+func (lex *Lexer) isPunctOrOper(char byte) bool {
+	if kind, exists := lex.lang.Literals[string(char)]; exists {
+		if kind == PUNCT || kind == OPERATOR {
+			return true
+		}
+		return false
 	}
 	return false
 }
@@ -76,11 +79,6 @@ func (lex *Lexer) peek() byte {
 	return lex.source[lex.pos]
 }
 
-func (lex *Lexer) consumeSpace() {
-	for lex.isValid() && isSpace(lex.peek()) {
-		lex.pos++
-	}
-}
 func (lex *Lexer) consumeIdent(start int) Tokenkind {
 	for lex.isValid() && (isLetter(lex.peek()) || isDigit(lex.peek())) {
 		lex.pos++
@@ -111,22 +109,89 @@ func (lex *Lexer) consumeString() Tokenkind {
 			lex.pos++
 			return STRING
 		}
+		lex.pos++
 	}
 	return ILLEGAL
 }
 
-func (lex *Lexer) consumePunct() Tokenkind {
-	for lex.isValid() && lex.isPunct(lex.peek()) {
+func (lex *Lexer) consumeSingleQuote() Tokenkind {
+	lex.pos++
+	for lex.isValid() {
+		ch := lex.peek()
+		if ch == '\\' {
+			lex.pos += 2
+			continue
+		}
+		if ch == '\'' {
+			lex.pos++
+			return STRING
+		}
 		lex.pos++
 	}
-	return PUNCT
+	return ILLEGAL
 }
 
-func (lex *Lexer) consumeOperator() Tokenkind {
-	for lex.isValid() && lex.isPunct(lex.peek()) {
+func (lex *Lexer) consumeBacktick() Tokenkind {
+	lex.pos++
+	for lex.isValid() {
+		ch := lex.peek()
+		if ch == '\\' {
+			lex.pos += 2
+			continue
+		}
+		if ch == '`' {
+			lex.pos++
+			return STRING
+		}
 		lex.pos++
 	}
-	return OPERATOR
+	return ILLEGAL
+}
+
+func (lex *Lexer) consumePunctOrOper() Tokenkind {
+	remaining := len(lex.source) - lex.pos
+	if remaining >= 3 {
+		threeChars := lex.source[lex.pos : lex.pos+3]
+		if kind, exists := lex.lang.Literals[string(threeChars)]; exists && (kind == PUNCT || kind == OPERATOR) {
+			lex.pos += 3
+			return kind
+		}
+	}
+	if remaining >= 2 {
+		twoChars := string(lex.source[lex.pos : lex.pos+2])
+		if twoChars == "//" {
+			lex.pos += 2
+			for lex.isValid() && lex.source[lex.pos] != '\n' {
+				lex.pos++
+			}
+			return COMMENT
+		}
+		if twoChars == "/*" {
+			lex.pos += 2
+			for lex.isValid() {
+				if len(lex.source)-lex.pos >= 2 && string(lex.source[lex.pos:lex.pos+2]) == "*/" {
+					lex.pos += 2
+					return COMMENT
+				}
+				lex.pos++
+			}
+		}
+		if kind, exists := lex.lang.Literals[twoChars]; exists {
+			lex.pos += 2
+			return kind
+		}
+	}
+	if remaining >= 1 {
+		oneChar := lex.source[lex.pos : lex.pos+1]
+		if kind, exists := lex.lang.Literals[string(oneChar)]; exists {
+			lex.pos += 1
+			return kind
+		}
+	}
+	if remaining > 0 {
+		lex.pos++
+	}
+	return ILLEGAL
 }
 
 func (lex *Lexer) emitToken(kind Tokenkind, start int) {

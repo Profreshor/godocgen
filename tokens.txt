@@ -1,0 +1,673 @@
+terminal_report.go
+Files successfully walked
+Lexer Initialized
+
+ text: package
+Token: keyword, Span(0, 7)
+
+ text: report
+Token: ident, Span(8, 14)
+
+ text: import
+Token: keyword, Span(16, 22)
+
+ text: (
+Token: punct, Span(23, 24)
+
+ text: "fmt"
+Token: string, Span(26, 31)
+
+ text: "path/filepath"
+Token: string, Span(33, 48)
+
+ text: "slices"
+Token: string, Span(50, 58)
+
+ text: "github.com/Profreshor/godocgen/internal/model"
+Token: string, Span(61, 108)
+
+ text: )
+Token: punct, Span(109, 110)
+
+ text: const
+Token: keyword, Span(112, 117)
+
+ text: logo
+Token: ident, Span(118, 122)
+
+ text: string
+Token: ident, Span(123, 129)
+
+ text: =
+Token: operator, Span(130, 131)
+
+ text: `
+        ▌               
+▞▀▌▞▀▖▞▀▌▞▀▖▞▀▖▞▀▌▞▀▖▛▀▖
+▚▄▌▌ ▌▌ ▌▌ ▌▌ ▖▚▄▌▛▀ ▌ ▌
+▗▄▘▝▀ ▝▀▘▝▀ ▝▀ ▗▄▘▝▀▘▘ ▘`
+Token: string, Span(132, 360)
+
+ text: // group project.Files by filepath.Dir(RelativePath)
+Token: comment, Span(362, 414)
+
+ text: // sort directory headings
+Token: comment, Span(415, 441)
+
+ text: // sort files inside each heading
+Token: comment, Span(442, 475)
+
+ text: // print filename using filepath.Base
+Token: comment, Span(476, 513)
+
+ text: func
+Token: keyword, Span(515, 519)
+
+ text: PrintTerminalReport
+Token: ident, Span(520, 539)
+
+ text: (
+Token: punct, Span(539, 540)
+
+ text: project
+Token: ident, Span(540, 547)
+
+ text: model
+Token: ident, Span(548, 553)
+
+ text: .
+Token: punct, Span(553, 554)
+
+ text: Project
+Token: ident, Span(554, 561)
+
+ text: )
+Token: punct, Span(561, 562)
+
+ text: {
+Token: punct, Span(563, 564)
+
+ text: fileGroup
+Token: ident, Span(566, 575)
+
+ text: :=
+Token: operator, Span(576, 578)
+
+ text: make
+Token: ident, Span(579, 583)
+
+ text: (
+Token: punct, Span(583, 584)
+
+ text: map
+Token: keyword, Span(584, 587)
+
+ text: [
+Token: punct, Span(587, 588)
+
+ text: string
+Token: ident, Span(588, 594)
+
+ text: ]
+Token: punct, Span(594, 595)
+
+ text: [
+Token: punct, Span(595, 596)
+
+ text: ]
+Token: punct, Span(596, 597)
+
+ text: string
+Token: ident, Span(597, 603)
+
+ text: ,
+Token: punct, Span(603, 604)
+
+ text: len
+Token: ident, Span(605, 608)
+
+ text: (
+Token: punct, Span(608, 609)
+
+ text: project
+Token: ident, Span(609, 616)
+
+ text: .
+Token: punct, Span(616, 617)
+
+ text: Files
+Token: ident, Span(617, 622)
+
+ text: )
+Token: punct, Span(622, 623)
+
+ text: )
+Token: punct, Span(623, 624)
+
+ text: for
+Token: keyword, Span(626, 629)
+
+ text: _
+Token: ident, Span(630, 631)
+
+ text: ,
+Token: punct, Span(631, 632)
+
+ text: file
+Token: ident, Span(633, 637)
+
+ text: :=
+Token: operator, Span(638, 640)
+
+ text: range
+Token: keyword, Span(641, 646)
+
+ text: project
+Token: ident, Span(647, 654)
+
+ text: .
+Token: punct, Span(654, 655)
+
+ text: Files
+Token: ident, Span(655, 660)
+
+ text: {
+Token: punct, Span(661, 662)
+
+ text: directory
+Token: ident, Span(665, 674)
+
+ text: :=
+Token: operator, Span(675, 677)
+
+ text: filepath
+Token: ident, Span(678, 686)
+
+ text: .
+Token: punct, Span(686, 687)
+
+ text: Dir
+Token: ident, Span(687, 690)
+
+ text: (
+Token: punct, Span(690, 691)
+
+ text: file
+Token: ident, Span(691, 695)
+
+ text: .
+Token: punct, Span(695, 696)
+
+ text: RelativePath
+Token: ident, Span(696, 708)
+
+ text: )
+Token: punct, Span(708, 709)
+
+ text: fileName
+Token: ident, Span(712, 720)
+
+ text: :=
+Token: operator, Span(721, 723)
+
+ text: filepath
+Token: ident, Span(724, 732)
+
+ text: .
+Token: punct, Span(732, 733)
+
+ text: Base
+Token: ident, Span(733, 737)
+
+ text: (
+Token: punct, Span(737, 738)
+
+ text: file
+Token: ident, Span(738, 742)
+
+ text: .
+Token: punct, Span(742, 743)
+
+ text: RelativePath
+Token: ident, Span(743, 755)
+
+ text: )
+Token: punct, Span(755, 756)
+
+ text: fileGroup
+Token: ident, Span(759, 768)
+
+ text: [
+Token: punct, Span(768, 769)
+
+ text: directory
+Token: ident, Span(769, 778)
+
+ text: ]
+Token: punct, Span(778, 779)
+
+ text: =
+Token: operator, Span(780, 781)
+
+ text: append
+Token: ident, Span(782, 788)
+
+ text: (
+Token: punct, Span(788, 789)
+
+ text: fileGroup
+Token: ident, Span(789, 798)
+
+ text: [
+Token: punct, Span(798, 799)
+
+ text: directory
+Token: ident, Span(799, 808)
+
+ text: ]
+Token: punct, Span(808, 809)
+
+ text: ,
+Token: punct, Span(809, 810)
+
+ text: fileName
+Token: ident, Span(811, 819)
+
+ text: )
+Token: punct, Span(819, 820)
+
+ text: }
+Token: punct, Span(822, 823)
+
+ text: directories
+Token: ident, Span(825, 836)
+
+ text: :=
+Token: operator, Span(837, 839)
+
+ text: make
+Token: ident, Span(840, 844)
+
+ text: (
+Token: punct, Span(844, 845)
+
+ text: [
+Token: punct, Span(845, 846)
+
+ text: ]
+Token: punct, Span(846, 847)
+
+ text: string
+Token: ident, Span(847, 853)
+
+ text: ,
+Token: punct, Span(853, 854)
+
+ text: 0
+Token: number, Span(855, 856)
+
+ text: ,
+Token: punct, Span(856, 857)
+
+ text: len
+Token: ident, Span(858, 861)
+
+ text: (
+Token: punct, Span(861, 862)
+
+ text: fileGroup
+Token: ident, Span(862, 871)
+
+ text: )
+Token: punct, Span(871, 872)
+
+ text: )
+Token: punct, Span(872, 873)
+
+ text: for
+Token: keyword, Span(875, 878)
+
+ text: k
+Token: ident, Span(879, 880)
+
+ text: :=
+Token: operator, Span(881, 883)
+
+ text: range
+Token: keyword, Span(884, 889)
+
+ text: fileGroup
+Token: ident, Span(890, 899)
+
+ text: {
+Token: punct, Span(900, 901)
+
+ text: directories
+Token: ident, Span(904, 915)
+
+ text: =
+Token: operator, Span(916, 917)
+
+ text: append
+Token: ident, Span(918, 924)
+
+ text: (
+Token: punct, Span(924, 925)
+
+ text: directories
+Token: ident, Span(925, 936)
+
+ text: ,
+Token: punct, Span(936, 937)
+
+ text: k
+Token: ident, Span(938, 939)
+
+ text: )
+Token: punct, Span(939, 940)
+
+ text: }
+Token: punct, Span(942, 943)
+
+ text: slices
+Token: ident, Span(945, 951)
+
+ text: .
+Token: punct, Span(951, 952)
+
+ text: Sort
+Token: ident, Span(952, 956)
+
+ text: (
+Token: punct, Span(956, 957)
+
+ text: directories
+Token: ident, Span(957, 968)
+
+ text: )
+Token: punct, Span(968, 969)
+
+ text: fmt
+Token: ident, Span(972, 975)
+
+ text: .
+Token: punct, Span(975, 976)
+
+ text: Println
+Token: ident, Span(976, 983)
+
+ text: (
+Token: punct, Span(983, 984)
+
+ text: logo
+Token: ident, Span(984, 988)
+
+ text: )
+Token: punct, Span(988, 989)
+
+ text: fmt
+Token: ident, Span(991, 994)
+
+ text: .
+Token: punct, Span(994, 995)
+
+ text: Printf
+Token: ident, Span(995, 1001)
+
+ text: (
+Token: punct, Span(1001, 1002)
+
+ text: "\nSelected Project Root: %s\n\n"
+Token: string, Span(1002, 1035)
+
+ text: ,
+Token: punct, Span(1035, 1036)
+
+ text: project
+Token: ident, Span(1037, 1044)
+
+ text: .
+Token: punct, Span(1044, 1045)
+
+ text: RootPath
+Token: ident, Span(1045, 1053)
+
+ text: )
+Token: punct, Span(1053, 1054)
+
+ text: fmt
+Token: ident, Span(1056, 1059)
+
+ text: .
+Token: punct, Span(1059, 1060)
+
+ text: Printf
+Token: ident, Span(1060, 1066)
+
+ text: (
+Token: punct, Span(1066, 1067)
+
+ text: "Project contains: %d Go files\n  Across %d directories\n"
+Token: string, Span(1067, 1125)
+
+ text: ,
+Token: punct, Span(1125, 1126)
+
+ text: len
+Token: ident, Span(1129, 1132)
+
+ text: (
+Token: punct, Span(1132, 1133)
+
+ text: project
+Token: ident, Span(1133, 1140)
+
+ text: .
+Token: punct, Span(1140, 1141)
+
+ text: Files
+Token: ident, Span(1141, 1146)
+
+ text: )
+Token: punct, Span(1146, 1147)
+
+ text: ,
+Token: punct, Span(1147, 1148)
+
+ text: len
+Token: ident, Span(1149, 1152)
+
+ text: (
+Token: punct, Span(1152, 1153)
+
+ text: directories
+Token: ident, Span(1153, 1164)
+
+ text: )
+Token: punct, Span(1164, 1165)
+
+ text: )
+Token: punct, Span(1165, 1166)
+
+ text: for
+Token: keyword, Span(1169, 1172)
+
+ text: _
+Token: ident, Span(1173, 1174)
+
+ text: ,
+Token: punct, Span(1174, 1175)
+
+ text: dir
+Token: ident, Span(1176, 1179)
+
+ text: :=
+Token: operator, Span(1180, 1182)
+
+ text: range
+Token: keyword, Span(1183, 1188)
+
+ text: directories
+Token: ident, Span(1189, 1200)
+
+ text: {
+Token: punct, Span(1201, 1202)
+
+ text: slices
+Token: ident, Span(1205, 1211)
+
+ text: .
+Token: punct, Span(1211, 1212)
+
+ text: Sort
+Token: ident, Span(1212, 1216)
+
+ text: (
+Token: punct, Span(1216, 1217)
+
+ text: fileGroup
+Token: ident, Span(1217, 1226)
+
+ text: [
+Token: punct, Span(1226, 1227)
+
+ text: dir
+Token: ident, Span(1227, 1230)
+
+ text: ]
+Token: punct, Span(1230, 1231)
+
+ text: )
+Token: punct, Span(1231, 1232)
+
+ text: fmt
+Token: ident, Span(1235, 1238)
+
+ text: .
+Token: punct, Span(1238, 1239)
+
+ text: Printf
+Token: ident, Span(1239, 1245)
+
+ text: (
+Token: punct, Span(1245, 1246)
+
+ text: "\nDirectory: %s\n"
+Token: string, Span(1246, 1265)
+
+ text: ,
+Token: punct, Span(1265, 1266)
+
+ text: dir
+Token: ident, Span(1267, 1270)
+
+ text: )
+Token: punct, Span(1270, 1271)
+
+ text: fmt
+Token: ident, Span(1274, 1277)
+
+ text: .
+Token: punct, Span(1277, 1278)
+
+ text: Printf
+Token: ident, Span(1278, 1284)
+
+ text: (
+Token: punct, Span(1284, 1285)
+
+ text: "Files -> %d\n"
+Token: string, Span(1285, 1300)
+
+ text: ,
+Token: punct, Span(1300, 1301)
+
+ text: len
+Token: ident, Span(1302, 1305)
+
+ text: (
+Token: punct, Span(1305, 1306)
+
+ text: fileGroup
+Token: ident, Span(1306, 1315)
+
+ text: [
+Token: punct, Span(1315, 1316)
+
+ text: dir
+Token: ident, Span(1316, 1319)
+
+ text: ]
+Token: punct, Span(1319, 1320)
+
+ text: )
+Token: punct, Span(1320, 1321)
+
+ text: )
+Token: punct, Span(1321, 1322)
+
+ text: for
+Token: keyword, Span(1325, 1328)
+
+ text: _
+Token: ident, Span(1329, 1330)
+
+ text: ,
+Token: punct, Span(1330, 1331)
+
+ text: file
+Token: ident, Span(1332, 1336)
+
+ text: :=
+Token: operator, Span(1337, 1339)
+
+ text: range
+Token: keyword, Span(1340, 1345)
+
+ text: fileGroup
+Token: ident, Span(1346, 1355)
+
+ text: [
+Token: punct, Span(1355, 1356)
+
+ text: dir
+Token: ident, Span(1356, 1359)
+
+ text: ]
+Token: punct, Span(1359, 1360)
+
+ text: {
+Token: punct, Span(1361, 1362)
+
+ text: fmt
+Token: ident, Span(1366, 1369)
+
+ text: .
+Token: punct, Span(1369, 1370)
+
+ text: Printf
+Token: ident, Span(1370, 1376)
+
+ text: (
+Token: punct, Span(1376, 1377)
+
+ text: "  %s\n"
+Token: string, Span(1377, 1385)
+
+ text: ,
+Token: punct, Span(1385, 1386)
+
+ text: file
+Token: ident, Span(1387, 1391)
+
+ text: )
+Token: punct, Span(1391, 1392)
+
+ text: }
+Token: punct, Span(1395, 1396)
+
+ text: }
+Token: punct, Span(1398, 1399)
+
+ text: }
+Token: punct, Span(1401, 1402)

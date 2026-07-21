@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -39,6 +40,7 @@ func WalkFiles(rootPath string) (model.Project, error) {
 			return fs.SkipDir
 		}
 		if !d.IsDir() && captureList[ext] {
+			fmt.Println(name)
 			absPath := filepath.Join(
 				project.RootPath,
 				path,

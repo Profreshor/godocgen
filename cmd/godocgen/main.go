@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	// "github.com/Profreshor/godocgen/internal/report"
 	"github.com/Profreshor/godocgen/internal/lexer"
 	"github.com/Profreshor/godocgen/internal/walker"
 )
@@ -40,7 +39,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
+	fmt.Println("Files successfully walked")
 	for _, file := range project.Files {
 		if file.LoadErr != nil {
 			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
@@ -50,6 +49,8 @@ func main() {
 			fmt.Printf("codedocgen: %v\n", err)
 		}
 		lex.Tokenize()
+		// for _, token := range lex.Tokens {
+		// 	fmt.Println(token)
+		// }
 	}
-	// report.PrintTerminalReport(project)
 }

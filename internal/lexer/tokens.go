@@ -45,7 +45,7 @@ func (k Tokenkind) String() string {
 	case COMMENT:
 		return "comment"
 	case PUNCT:
-		return "punctuation"
+		return "punct"
 	case OPERATOR:
 		return "operator"
 	default:
