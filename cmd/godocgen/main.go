@@ -49,8 +49,6 @@ func main() {
 			fmt.Printf("codedocgen: %v\n", err)
 		}
 		lex.Tokenize()
-		// for _, token := range lex.Tokens {
-		// 	fmt.Println(token)
-		// }
 	}
+	fmt.Println("Files successfully tokenized")
 }

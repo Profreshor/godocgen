@@ -17,7 +17,6 @@ func CreateLexer(content []byte, ext string) (*Lexer, error) {
 	if !supported {
 		return nil, fmt.Errorf("unsupported extension: %s", ext)
 	}
-	fmt.Println("Lexer Initialized")
 	return &Lexer{
 		source: content,
 		pos:    0,
@@ -51,9 +50,6 @@ func (lex *Lexer) Tokenize() {
 			lex.pos++
 		}
 		lex.emitToken(kind, start)
-
-		fmt.Printf("\n text: %s\n", string(lex.source[start:lex.pos]))
-		fmt.Printf("Token: %v, Span(%v, %v)\n", kind, start, lex.pos)
 	}
 
 }
