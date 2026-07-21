@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Profreshor/godocgen/internal/report"
-	"github.com/Profreshor/godocgen/internal/scanner"
+	// "github.com/Profreshor/godocgen/internal/report"
+	"github.com/Profreshor/godocgen/internal/lexer"
+	"github.com/Profreshor/godocgen/internal/walker"
 )
 
 func main() {
@@ -34,10 +35,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	project, err := scanner.Scan(absPath)
+	project, err := walker.WalkFiles(absPath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	report.PrintTerminalReport(project)
+
+	for _, file := range project.Files {
+		if file.LoadErr != nil {
+			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
+		}
+		lex, err := lexer.CreateLexer(file.Content, file.FileExt)
+		if err != nil {
+			fmt.Printf("codedocgen: %v\n", err)
+		}
+		lex.Tokenize()
+	}
+	// report.PrintTerminalReport(project)
 }

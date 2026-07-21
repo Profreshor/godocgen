@@ -1,4 +1,4 @@
-package scanner
+package walker
 
 import (
 	"io/fs"
@@ -25,7 +25,7 @@ var captureList = map[string]bool{
 	// ".yaml": true,
 }
 
-func Scan(rootPath string) (model.Project, error) {
+func WalkFiles(rootPath string) (model.Project, error) {
 	project := model.Project{RootPath: rootPath}
 	fileSystem := os.DirFS(project.RootPath)
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
@@ -43,13 +43,13 @@ func Scan(rootPath string) (model.Project, error) {
 				project.RootPath,
 				path,
 			)
-			content, err := os.ReadFile(absPath)
+			content, ReadErr := os.ReadFile(absPath)
 			project.Files = append(project.Files, model.SourceFile{
 				AbsolutePath: absPath,
 				RelativePath: path,
 				FileExt:      ext,
 				Content:      content,
-				LoadErr:      err,
+				LoadErr:      ReadErr,
 			})
 		}
 		return nil
