@@ -43,10 +43,11 @@ func main() {
 	for _, file := range project.Files {
 		if file.LoadErr != nil {
 			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
+			continue
 		}
 		lex, err := lexer.CreateLexer(file.Content, file.FileExt)
 		if err != nil {
-			fmt.Printf("codedocgen: %v\n", err)
+			fmt.Printf("godocgen: %v\n", err)
 		}
 		lex.Tokenize()
 	}

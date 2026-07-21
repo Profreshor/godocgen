@@ -26,7 +26,7 @@ package lexer
 // 	INTERFACE
 // 	FUNCTION
 // 	VARIABLE
-// 	CONTSTANT
+// 	CONSTANT
 // 	STRING
 // 	NUMBER
 // 	BOOLEAN

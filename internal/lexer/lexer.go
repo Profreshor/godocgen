@@ -39,11 +39,11 @@ func (lex *Lexer) Tokenize() {
 		case isDigit(ch):
 			kind = lex.consumeDigit()
 		case ch == '`':
-			kind = lex.consumeBacktick()
+			kind = lex.consumeDelimited('`', false)
 		case ch == '"':
-			kind = lex.consumeString()
+			kind = lex.consumeDelimited('"', true)
 		case ch == '\'':
-			kind = lex.consumeSingleQuote()
+			kind = lex.consumeDelimited('\'', true)
 		case lex.isPunctOrOper(ch):
 			kind = lex.consumePunctOrOper()
 		default:
@@ -93,49 +93,17 @@ func (lex *Lexer) consumeDigit() Tokenkind {
 	return NUMBER
 }
 
-func (lex *Lexer) consumeString() Tokenkind {
+func (lex *Lexer) consumeDelimited(closer byte, allowEscapes bool) Tokenkind {
 	lex.pos++
 	for lex.isValid() {
 		ch := lex.peek()
-		if ch == '\\' {
-			lex.pos += 2
-			continue
+		if allowEscapes {
+			if ch == '\\' {
+				lex.pos += 2
+				continue
+			}
 		}
-		if ch == '"' {
-			lex.pos++
-			return STRING
-		}
-		lex.pos++
-	}
-	return ILLEGAL
-}
-
-func (lex *Lexer) consumeSingleQuote() Tokenkind {
-	lex.pos++
-	for lex.isValid() {
-		ch := lex.peek()
-		if ch == '\\' {
-			lex.pos += 2
-			continue
-		}
-		if ch == '\'' {
-			lex.pos++
-			return STRING
-		}
-		lex.pos++
-	}
-	return ILLEGAL
-}
-
-func (lex *Lexer) consumeBacktick() Tokenkind {
-	lex.pos++
-	for lex.isValid() {
-		ch := lex.peek()
-		if ch == '\\' {
-			lex.pos += 2
-			continue
-		}
-		if ch == '`' {
+		if ch == closer {
 			lex.pos++
 			return STRING
 		}
@@ -172,7 +140,7 @@ func (lex *Lexer) consumePunctOrOper() Tokenkind {
 				lex.pos++
 			}
 		}
-		if kind, exists := lex.lang.Literals[twoChars]; exists {
+		if kind, exists := lex.lang.Literals[twoChars]; exists && (kind == PUNCT || kind == OPERATOR) {
 			lex.pos += 2
 			return kind
 		}
