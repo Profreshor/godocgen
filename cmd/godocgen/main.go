@@ -48,6 +48,7 @@ func main() {
 		lex, err := lexer.CreateLexer(file.Content, file.FileExt)
 		if err != nil {
 			fmt.Printf("godocgen: %v\n", err)
+			os.Exit(1)
 		}
 		lex.Tokenize()
 	}

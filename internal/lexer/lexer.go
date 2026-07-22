@@ -51,7 +51,7 @@ func (lex *Lexer) Tokenize() {
 		}
 		lex.emitToken(kind, start)
 	}
-
+	lex.emitToken(EOF, lex.pos)
 }
 
 func (lex *Lexer) isValid() bool {
@@ -87,7 +87,7 @@ func (lex *Lexer) consumeIdent(start int) Tokenkind {
 }
 
 func (lex *Lexer) consumeDigit() Tokenkind {
-	for lex.isValid() && isDigit(lex.peek()) {
+	for lex.isValid() && isDigit(lex.peek()) || lex.peek() == '.' {
 		lex.pos++
 	}
 	return NUMBER
