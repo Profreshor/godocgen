@@ -9,6 +9,7 @@ type Symbol struct {
 	Selector lexer.Span
 	Doc      string
 	Detail   string
+	Owner    string
 	Children []Symbol
 }
 

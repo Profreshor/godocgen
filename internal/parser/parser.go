@@ -187,7 +187,7 @@ func (p *Parser) parseOneSpec(start int, kind SymbolKind) bool {
 		}
 	}
 	for _, name := range names {
-		p.emitSymbol(kind, p.sliceSpan(name), span, name.Span, doc, detail)
+		p.emitSymbol(kind, p.sliceSpan(name), span, name.Span, doc, detail, "")
 	}
 	return true
 }
@@ -236,7 +236,7 @@ func (p *Parser) parseFunc(start int) bool {
 		kind = METHOD
 	}
 	p.skipBalanced("{", "}")
-	p.emitSymbol(kind, p.sliceSpan(name), p.spanFrom(start), name.Span, doc, detail)
+	p.emitSymbol(kind, p.sliceSpan(name), p.spanFrom(start), name.Span, doc, detail, owner)
 	return true
 }
 
@@ -265,7 +265,7 @@ func (p *Parser) parsePackage(start int) bool {
 		return false
 	}
 	doc := p.collectDoc(start)
-	p.emitSymbol(MODULE, p.sliceSpan(tok), p.spanFrom(start), tok.Span, doc, p.textOf(tok.Span))
+	p.emitSymbol(MODULE, p.sliceSpan(tok), p.spanFrom(start), tok.Span, doc, p.textOf(tok.Span), "")
 	return true
 }
 
@@ -302,7 +302,7 @@ func (p *Parser) parseOneImport(start int) bool {
 		name = p.sliceSpan(alias)
 		selector = alias.Span
 	}
-	p.emitSymbol(PACKAGE, name, p.spanFrom(start), selector, doc, detail)
+	p.emitSymbol(PACKAGE, name, p.spanFrom(start), selector, doc, detail, "")
 	return true
 }
 
@@ -345,7 +345,7 @@ func (p *Parser) textOf(span lexer.Span) string {
 }
 
 // Token emitting helper
-func (p *Parser) emitSymbol(symbol SymbolKind, name string, span lexer.Span, selector lexer.Span, doc string, detail string) {
+func (p *Parser) emitSymbol(symbol SymbolKind, name string, span lexer.Span, selector lexer.Span, doc string, detail string, owner string) {
 	p.symbols = append(p.symbols, Symbol{
 		Kind:     symbol,
 		Name:     name,
@@ -353,6 +353,7 @@ func (p *Parser) emitSymbol(symbol SymbolKind, name string, span lexer.Span, sel
 		Selector: selector,
 		Doc:      doc,
 		Detail:   detail,
+		Owner:    owner,
 	})
 	fmt.Printf("%-9s %-20q sel=%-20q span=[%d:%d] detail=%q doc=%q\n",
 		symbol, name,
