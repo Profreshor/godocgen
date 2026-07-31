@@ -10,6 +10,7 @@ type Symbol struct {
 	Doc      string
 	Detail   string
 	Owner    string
+	File     string
 	Children []Symbol
 }
 

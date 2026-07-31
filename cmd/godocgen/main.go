@@ -56,7 +56,11 @@ func main() {
 		lex.Tokenize()
 		p := parser.CreateParser(lex.Tokens, file.Content)
 		p.Parse()
-		all = append(all, p.Symbols()...)
+		syms := p.Symbols()
+		for i := range syms {
+			syms[i].File = file.RelativePath
+		}
+		all = append(all, syms...)
 	}
 	tree, notes := parser.Assemble(all)
 
@@ -71,7 +75,11 @@ func main() {
 
 func printSymbol(s parser.Symbol, depth int) {
 	indent := strings.Repeat("  ", depth)
-	fmt.Printf("%s%-9s %s %s\n", indent, s.Kind, s.Name, s.Detail)
+	if depth == 0 {
+		fmt.Printf("%s%-9s %s  %s  [%s]\n", indent, s.Kind, s.Name, s.Detail, s.File)
+	} else {
+		fmt.Printf("%s%-9s %s  %s\n", indent, s.Kind, s.Name, s.Detail)
+	}
 	for _, child := range s.Children {
 		printSymbol(child, depth+1)
 	}
