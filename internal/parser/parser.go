@@ -273,7 +273,11 @@ func (p *Parser) parseImport(start int) bool {
 	if p.sliceSpan(p.peek()) == "(" {
 		p.advance()
 		for p.isValid() && p.sliceSpan(p.peek()) != ")" {
+			before := p.pos
 			p.parseOneImport(p.pos)
+			if p.pos == before {
+				p.advance()
+			}
 		}
 		p.expectText(")")
 		return true
