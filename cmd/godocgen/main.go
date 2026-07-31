@@ -65,6 +65,10 @@ func main() {
 	}
 	tree, notes := parser.Assemble(all)
 
+	if err := os.MkdirAll("output", 0o755); err != nil {
+		fmt.Printf("godocgen: %v\n", err)
+		os.Exit(1)
+	}
 	f, err := os.Create("output/out.html")
 	if err != nil {
 		fmt.Printf("godocgen: %v\n", err)
@@ -88,10 +92,15 @@ func main() {
 
 func printSymbol(s parser.Symbol, depth int) {
 	indent := strings.Repeat("  ", depth)
+	line := s.Detail
+	if strings.Contains(line, "\n") {
+		parts := strings.Split(line, "\n")
+		line = parts[0] + "..."
+	}
 	if depth == 0 {
-		fmt.Printf("%s%-9s %s  %s  [%s]\n", indent, s.Kind, s.Name, s.Detail, s.File)
+		fmt.Printf("%s%-9s %s  %s  [%s]\n", indent, s.Kind, s.Name, line, s.File)
 	} else {
-		fmt.Printf("%s%-9s %s  %s\n", indent, s.Kind, s.Name, s.Detail)
+		fmt.Printf("%s%-9s %s  %s\n", indent, s.Kind, s.Name, line)
 	}
 	for _, child := range s.Children {
 		printSymbol(child, depth+1)

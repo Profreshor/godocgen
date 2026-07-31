@@ -78,6 +78,10 @@ func (pw *pageWriter) printf(format string, args ...any) {
 	_, pw.firstError = fmt.Fprintf(pw.destination, format, args...)
 }
 
+func (pw *pageWriter) printfLine(format string, args ...any) {
+	pw.printf(format+"\n", args...)
+}
+
 // Escape helper
 func (pw *pageWriter) writeEscaped(text string) {
 	pw.write(html.EscapeString(text))
@@ -89,7 +93,7 @@ func (pw *pageWriter) renderSymbols(symbols []parser.Symbol) {
 	if len(symbols) == 0 {
 		return
 	}
-	pw.writeLine(`<ul class="symbols>`)
+	pw.writeLine(`<ul class="symbols">`)
 	for i := range symbols {
 		pw.renderSymbol(&symbols[i])
 	}
@@ -97,9 +101,9 @@ func (pw *pageWriter) renderSymbols(symbols []parser.Symbol) {
 }
 
 func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
-	pw.writeLine(`<li class="symbol>`)
+	pw.writeLine(`<li class="symbol">`)
 
-	pw.printf(`  <div><span class="kind">%s</span> <span class="name"><code>%s</code></span></div>`,
+	pw.printfLine(`  <div><span class="kind">%s</span> <span class="name"><code>%s</code></span></div>`,
 		html.EscapeString(s.Kind.String()),
 		html.EscapeString(s.Name),
 	)
@@ -107,7 +111,7 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 		pw.printf(`  <div class="meta">owner: <code>%s</code></div>`, html.EscapeString(s.Owner))
 	}
 	if s.Detail != "" {
-		pw.writeLine(`  <pre class="detail"><code>`)
+		pw.write(`  <pre class="detail"><code>`)
 		pw.writeEscaped(s.Detail)
 		pw.writeLine(`</code></pre>`)
 	}
@@ -117,7 +121,7 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 		pw.writeLine(`</div>`)
 	}
 	if s.File != "" {
-		pw.printf(`  <div class="meta">%s</div>`, html.EscapeString(s.File))
+		pw.printfLine(`  <div class="meta">%s</div>`, html.EscapeString(s.File))
 	}
 	if len(s.Children) > 0 {
 		pw.renderSymbols(s.Children)
@@ -132,7 +136,7 @@ type kindGroup struct {
 
 func (pw *pageWriter) renderGroups(groups []kindGroup) {
 	for _, g := range groups {
-		pw.printf(`<h2 id="%s">%s</h2.`,
+		pw.printfLine(`<h2 id="%s">%s</h2>`,
 			html.EscapeString(g.Kind.String()),
 			html.EscapeString(g.Kind.String()))
 		pw.renderSymbols(g.Symbols)

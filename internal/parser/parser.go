@@ -180,11 +180,6 @@ func (p *Parser) parseOneSpec(start int, kind SymbolKind) bool {
 	span := p.spanFrom(start)
 	detail := p.textOf(span)
 	doc := p.collectDoc(start)
-	if kind != STRUCT && kind != INTERFACE {
-		if i := strings.IndexByte(detail, '\n'); i >= 0 {
-			detail = detail[:i] + "..."
-		}
-	}
 	for _, name := range names {
 		p.emitSymbol(kind, p.sliceSpan(name), span, name.Span, doc, detail, "")
 	}

@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	// standard library
 	"fmt"
 )
 
