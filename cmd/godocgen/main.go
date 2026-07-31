@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
+	"github.com/Profreshor/godocgen/internal/parser"
 	"github.com/Profreshor/godocgen/internal/walker"
 )
 
@@ -51,6 +52,8 @@ func main() {
 			os.Exit(1)
 		}
 		lex.Tokenize()
+		parser := parser.CreateParser(lex.Tokens, file.Content)
+		parser.Parse()
 	}
 	fmt.Println("Files successfully tokenized")
 }

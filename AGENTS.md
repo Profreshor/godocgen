@@ -42,7 +42,7 @@ AI agents may:
 ## Required Coaching Style
 
 When helping:
-
+- Adhere strictly to ASD-STE100 Simplified Technical English (STE)
 - Start with high-level guidance.
 - Prefer questions over answers.
 - Use pseudocode instead of implementation.
