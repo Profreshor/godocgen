@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
@@ -355,8 +354,9 @@ func (p *Parser) emitSymbol(symbol SymbolKind, name string, span lexer.Span, sel
 		Detail:   detail,
 		Owner:    owner,
 	})
-	fmt.Printf("%-9s %-20q sel=%-20q span=[%d:%d] detail=%q doc=%q\n",
-		symbol, name,
-		string(p.source[selector.Start.Byte:selector.End.Byte]),
-		span.Start.Byte, span.End.Byte, detail, doc)
+}
+
+// Symbols Accessor
+func (p *Parser) Symbols() []Symbol {
+	return p.symbols
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
 	"github.com/Profreshor/godocgen/internal/parser"
@@ -40,7 +41,8 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println("Files successfully walked")
+	// fmt.Println("Files successfully walked")
+	var all []parser.Symbol
 	for _, file := range project.Files {
 		if file.LoadErr != nil {
 			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
@@ -52,8 +54,25 @@ func main() {
 			os.Exit(1)
 		}
 		lex.Tokenize()
-		parser := parser.CreateParser(lex.Tokens, file.Content)
-		parser.Parse()
+		p := parser.CreateParser(lex.Tokens, file.Content)
+		p.Parse()
+		all = append(all, p.Symbols()...)
 	}
-	fmt.Println("Files successfully tokenized")
+	tree, notes := parser.Assemble(all)
+
+	for _, n := range notes {
+		fmt.Println("note:", n)
+	}
+	for _, symbol := range tree {
+		printSymbol(symbol, 0)
+	}
+
+}
+
+func printSymbol(s parser.Symbol, depth int) {
+	indent := strings.Repeat("  ", depth)
+	fmt.Printf("%s%-9s %s %s\n", indent, s.Kind, s.Name, s.Detail)
+	for _, child := range s.Children {
+		printSymbol(child, depth+1)
+	}
 }
