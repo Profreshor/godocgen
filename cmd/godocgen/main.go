@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
@@ -42,8 +43,9 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	// fmt.Println("Files successfully walked")
-	var all []parser.Symbol
+
+	// piles are groups of symbols per package
+	piles := make(map[string][]parser.Symbol)
 	for _, file := range project.Files {
 		if file.LoadErr != nil {
 			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
@@ -61,10 +63,19 @@ func main() {
 		for i := range syms {
 			syms[i].File = file.RelativePath
 		}
-		all = append(all, syms...)
+		dir := filepath.Dir(file.RelativePath)
+		piles[dir] = append(piles[dir], syms...)
 	}
-	tree, notes := parser.Assemble(all)
+	dirs := make([]string, 0, len(piles))
+	for dir := range piles {
+		dirs = append(dirs, dir)
+	}
+	sort.Strings(dirs)
 
+	var packages []parser.PackageDoc
+	for _, dir := range dirs {
+		packages = append(packages, parser.AssemblePackage(dir, piles[dir]))
+	}
 	if err := os.MkdirAll("output", 0o755); err != nil {
 		fmt.Printf("godocgen: %v\n", err)
 		os.Exit(1)
@@ -76,18 +87,19 @@ func main() {
 	}
 	defer f.Close()
 
-	if err := render.Render(f, tree); err != nil {
+	if err := render.Render(f, filepath.Base(absPath), packages); err != nil {
 		fmt.Printf("godocgen: %v\n", err)
 		os.Exit(1)
 	}
-
-	for _, n := range notes {
-		fmt.Println("note:", n)
+	for _, pkg := range packages {
+		fmt.Printf("== %s ==\n", pkg.Path)
+		for _, n := range pkg.Notes {
+			fmt.Println("note:", n)
+		}
+		for _, symbol := range pkg.Symbols {
+			printSymbol(symbol, 0)
+		}
 	}
-	for _, symbol := range tree {
-		printSymbol(symbol, 0)
-	}
-
 }
 
 func printSymbol(s parser.Symbol, depth int) {

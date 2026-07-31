@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -53,4 +54,33 @@ func Assemble(symbols []Symbol) ([]Symbol, []string) {
 		notes = append(notes, note)
 	}
 	return topLevel, notes
+}
+
+type PackageDoc struct {
+	Name    string
+	Path    string
+	Doc     string
+	Symbols []Symbol
+	Notes   []string
+}
+
+func AssemblePackage(path string, symbols []Symbol) PackageDoc {
+	tree, notes := Assemble(symbols)
+	name := filepath.Base(path)
+	doc := ""
+	for _, s := range symbols {
+		if s.Kind == MODULE {
+			name = s.Name
+			if doc == "" && s.Doc != "" {
+				doc = s.Doc
+			}
+		}
+	}
+	return PackageDoc{
+		Name:    name,
+		Path:    path,
+		Doc:     doc,
+		Symbols: tree,
+		Notes:   notes,
+	}
 }

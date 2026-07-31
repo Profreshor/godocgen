@@ -5,12 +5,12 @@ import (
 	"html"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/Profreshor/godocgen/internal/parser"
 )
 
 var kindOrder = []parser.SymbolKind{
-	parser.MODULE,
 	parser.PACKAGE,
 	parser.CONSTANT,
 	parser.VARIABLE,
@@ -21,14 +21,14 @@ var kindOrder = []parser.SymbolKind{
 	parser.METHOD,
 }
 
-func Render(w io.Writer, tree []parser.Symbol) error {
+func Render(w io.Writer, title string, packages []parser.PackageDoc) error {
 	pw := &pageWriter{destination: w}
 
 	pw.writeLine(`<!DOCTYPE html>`)
 	pw.writeLine(`<html lang="en">`)
 	pw.writeLine(`<head>`)
 	pw.writeLine(`  <meta charset="UTF-8">`)
-	pw.writeLine(`  <title>godocgen</title>`)
+	pw.printfLine(`  <title>%s</title>`, html.EscapeString(title))
 	pw.writeLine(`  <style>`)
 	pw.writeLine(`    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }`)
 	pw.writeLine(`    .symbol { margin: 1.5rem 0; border-left: 3px solid #ddd; padding-left: 1rem; }`)
@@ -42,14 +42,43 @@ func Render(w io.Writer, tree []parser.Symbol) error {
 	pw.writeLine(`  </style>`)
 	pw.writeLine(`</head>`)
 	pw.writeLine(`<body>`)
+	pw.printfLine(`<h1>%s</h1>`, html.EscapeString(title))
 
-	groups := groupAndSort(tree)
-	pw.renderGroups(groups)
+	pw.writeLine(`<nav><ul>`)
+	for i := range packages {
+		pw.printfLine(`  <li><a href="#pkg-%s">%s</a></li>`,
+			anchor(packages[i].Path),
+			html.EscapeString(packages[i].Path))
+	}
+	pw.writeLine(`</ul></nav>`)
+
+	for i := range packages {
+		pw.renderPackage(&packages[i])
+	}
 
 	pw.writeLine(`</body>`)
 	pw.writeLine(`</html>`)
 
 	return pw.firstError
+}
+
+func (pw *pageWriter) renderPackage(pkg *parser.PackageDoc) {
+	pw.printfLine(`<section id="pkg-%s">`, anchor(pkg.Path))
+	pw.printfLine(`<h2>%s <span class="meta">%s</span></h2>`,
+		html.EscapeString(pkg.Name),
+		html.EscapeString(pkg.Path))
+	if pkg.Doc != "" {
+		pw.printfLine(`<p class="doc">%s</p>`, html.EscapeString(cleanDoc(pkg.Doc)))
+	}
+	for _, note := range pkg.Notes {
+		pw.printfLine(`<div class="note">⚠ %s</div>`, html.EscapeString(note))
+	}
+	pw.renderGroups(groupAndSort(pkg.Symbols))
+	pw.writeLine(`</section>`)
+}
+
+func anchor(path string) string {
+	return strings.ReplaceAll(path, "/", "-")
 }
 
 type pageWriter struct {
@@ -117,7 +146,7 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 	}
 	if s.Doc != "" {
 		pw.writeLine(`  <div class="doc">`)
-		pw.writeEscaped(s.Doc)
+		pw.writeEscaped(cleanDoc(s.Doc))
 		pw.writeLine(`</div>`)
 	}
 	if s.File != "" {
@@ -129,6 +158,7 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 	pw.writeLine(`</li>`)
 }
 
+// --------- Group and Sort ----------
 type kindGroup struct {
 	Kind    parser.SymbolKind
 	Symbols []parser.Symbol
@@ -136,9 +166,7 @@ type kindGroup struct {
 
 func (pw *pageWriter) renderGroups(groups []kindGroup) {
 	for _, g := range groups {
-		pw.printfLine(`<h2 id="%s">%s</h2>`,
-			html.EscapeString(g.Kind.String()),
-			html.EscapeString(g.Kind.String()))
+		pw.printfLine(`<h3>%s</h3>`, html.EscapeString(g.Kind.String()))
 		pw.renderSymbols(g.Symbols)
 	}
 }
@@ -146,6 +174,9 @@ func (pw *pageWriter) renderGroups(groups []kindGroup) {
 func groupAndSort(symbols []parser.Symbol) []kindGroup {
 	byKind := make(map[parser.SymbolKind][]parser.Symbol)
 	for _, s := range symbols {
+		if s.Kind == parser.MODULE {
+			continue
+		}
 		byKind[s.Kind] = append(byKind[s.Kind], s)
 	}
 	for k := range byKind {
@@ -174,4 +205,18 @@ func groupAndSort(symbols []parser.Symbol) []kindGroup {
 		groups = append(groups, kindGroup{Kind: k, Symbols: byKind[k]})
 	}
 	return groups
+}
+
+// --------- cleaning ----------
+func cleanDoc(doc string) string {
+	if doc == "" {
+		return ""
+	}
+	lines := strings.Split(doc, "\n")
+	for i, line := range lines {
+		line = strings.TrimPrefix(line, "// ")
+		line = strings.TrimPrefix(line, "//")
+		lines[i] = line
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
