@@ -4,9 +4,22 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"sort"
 
 	"github.com/Profreshor/godocgen/internal/parser"
 )
+
+var kindOrder = []parser.SymbolKind{
+	parser.MODULE,
+	parser.PACKAGE,
+	parser.CONSTANT,
+	parser.VARIABLE,
+	parser.FUNCTION,
+	parser.TYPE,
+	parser.INTERFACE,
+	parser.STRUCT,
+	parser.METHOD,
+}
 
 func Render(w io.Writer, tree []parser.Symbol) error {
 	pw := &pageWriter{destination: w}
@@ -30,7 +43,8 @@ func Render(w io.Writer, tree []parser.Symbol) error {
 	pw.writeLine(`</head>`)
 	pw.writeLine(`<body>`)
 
-	pw.renderSymbols(tree)
+	groups := groupAndSort(tree)
+	pw.renderGroups(groups)
 
 	pw.writeLine(`</body>`)
 	pw.writeLine(`</html>`)
@@ -109,4 +123,51 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 		pw.renderSymbols(s.Children)
 	}
 	pw.writeLine(`</li>`)
+}
+
+type kindGroup struct {
+	Kind    parser.SymbolKind
+	Symbols []parser.Symbol
+}
+
+func (pw *pageWriter) renderGroups(groups []kindGroup) {
+	for _, g := range groups {
+		pw.printf(`<h2 id="%s">%s</h2.`,
+			html.EscapeString(g.Kind.String()),
+			html.EscapeString(g.Kind.String()))
+		pw.renderSymbols(g.Symbols)
+	}
+}
+
+func groupAndSort(symbols []parser.Symbol) []kindGroup {
+	byKind := make(map[parser.SymbolKind][]parser.Symbol)
+	for _, s := range symbols {
+		byKind[s.Kind] = append(byKind[s.Kind], s)
+	}
+	for k := range byKind {
+		sort.Slice(byKind[k], func(i, j int) bool {
+			return byKind[k][i].Name < byKind[k][j].Name
+		})
+	}
+	var groups []kindGroup
+	seen := make(map[parser.SymbolKind]bool)
+	for _, k := range kindOrder {
+		if list, ok := byKind[k]; ok {
+			groups = append(groups, kindGroup{Kind: k, Symbols: list})
+			seen[k] = true
+		}
+	}
+	var extra []parser.SymbolKind
+	for k := range byKind {
+		if !seen[k] {
+			extra = append(extra, k)
+		}
+	}
+	sort.Slice(extra, func(i, j int) bool {
+		return extra[i].String() < extra[j].String()
+	})
+	for _, k := range extra {
+		groups = append(groups, kindGroup{Kind: k, Symbols: byKind[k]})
+	}
+	return groups
 }
