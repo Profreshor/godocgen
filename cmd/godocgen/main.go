@@ -8,6 +8,7 @@ import (
 
 	"github.com/Profreshor/godocgen/internal/lexer"
 	"github.com/Profreshor/godocgen/internal/parser"
+	"github.com/Profreshor/godocgen/internal/render"
 	"github.com/Profreshor/godocgen/internal/walker"
 )
 
@@ -63,6 +64,18 @@ func main() {
 		all = append(all, syms...)
 	}
 	tree, notes := parser.Assemble(all)
+
+	f, err := os.Create("output/out.html")
+	if err != nil {
+		fmt.Printf("godocgen: %v\n", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	if err := render.Render(f, tree); err != nil {
+		fmt.Printf("godocgen: %v\n", err)
+		os.Exit(1)
+	}
 
 	for _, n := range notes {
 		fmt.Println("note:", n)

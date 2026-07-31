@@ -48,26 +48,26 @@ const (
 func (s SymbolKind) String() string {
 	switch s {
 	case FILE:
-		return "file"
+		return "File"
 	case MODULE:
-		return "module"
+		return "Module"
 	case PACKAGE:
-		return "package"
+		return "Package"
 	case METHOD:
-		return "method"
+		return "Method"
 	case FUNCTION:
-		return "function"
+		return "Function"
 	case VARIABLE:
-		return "variable"
+		return "Variable"
 	case CONSTANT:
-		return "constant"
+		return "Constant"
 	case TYPE:
-		return "type"
+		return "Type"
 	case STRUCT:
-		return "struct"
+		return "Struct"
 	case INTERFACE:
-		return "interface"
+		return "Interface"
 	default:
-		return "unknown"
+		return "Unknown"
 	}
 }
