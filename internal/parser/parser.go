@@ -303,7 +303,7 @@ func (p *Parser) parseOneImport(start int) bool {
 func (p *Parser) collectDoc(start int) string {
 	first := start
 	i := start - 1
-	for i >= 0 && p.isValid() {
+	for i >= 0 {
 		if p.tokens[i].Kind != lexer.COMMENT {
 			break
 		}

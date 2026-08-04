@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -35,21 +36,27 @@ func Assemble(symbols []Symbol) ([]Symbol, []string) {
 	}
 	// Phase 3: Conclusion
 	var notes []string
-	for ownerName, methodList := range methodsByOwner {
-		if len(methodList) == 0 {
+	ownerKeys := make([]string, 0, len(methodsByOwner))
+	for key := range methodsByOwner {
+		ownerKeys = append(ownerKeys, key)
+	}
+	sort.Strings(ownerKeys)
+
+	for _, owner := range ownerKeys {
+		if len(methodsByOwner[owner]) == 0 {
 			continue
 		}
-		topLevel = append(topLevel, methodList...)
-		names := make([]string, len(methodList))
-		for i, m := range methodList {
+		topLevel = append(topLevel, methodsByOwner[owner]...)
+		names := make([]string, len(methodsByOwner[owner]))
+		for i, m := range methodsByOwner[owner] {
 			names[i] = m.Name
 		}
 		var note string
 		switch len(names) {
 		case 1:
-			note = fmt.Sprintf("orphaned method %s references unknown type %s", names[0], ownerName)
+			note = fmt.Sprintf("orphaned method %s references unknown type %s", names[0], owner)
 		default:
-			note = fmt.Sprintf("orphaned methods %s reference unknown type %s", strings.Join(names, ", "), ownerName)
+			note = fmt.Sprintf("orphaned methods %s reference unknown type %s", strings.Join(names, ", "), owner)
 		}
 		notes = append(notes, note)
 	}
