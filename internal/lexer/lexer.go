@@ -99,7 +99,10 @@ func (lex *Lexer) consumeDelimited(closer byte, allowEscapes bool) Tokenkind {
 		ch := lex.peek()
 		if allowEscapes {
 			if ch == '\\' {
-				lex.pos += 2
+				lex.pos++
+				if lex.isValid() {
+					lex.pos++
+				}
 				continue
 			}
 		}
