@@ -1,6 +1,5 @@
 package model
 
 type Project struct {
-	RootPath string
-	Files    []SourceFile
+	Files []SourceFile
 }

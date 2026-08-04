@@ -2,7 +2,6 @@ package walker
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	"github.com/Profreshor/godocgen/internal/model"
@@ -25,9 +24,9 @@ var captureList = map[string]bool{
 	// ".yaml": true,
 }
 
-func WalkFiles(rootPath string) (model.Project, error) {
-	project := model.Project{RootPath: rootPath}
-	fileSystem := os.DirFS(project.RootPath)
+func WalkFiles(fileSystem fs.FS) (model.Project, error) {
+	project := model.Project{}
+
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -39,19 +38,15 @@ func WalkFiles(rootPath string) (model.Project, error) {
 			return fs.SkipDir
 		}
 		if !d.IsDir() && captureList[ext] {
-			absPath := filepath.Join(
-				project.RootPath,
-				path,
-			)
-			content, ReadErr := os.ReadFile(absPath)
+			content, readErr := fs.ReadFile(fileSystem, path)
 			project.Files = append(project.Files, model.SourceFile{
-				AbsolutePath: absPath,
 				RelativePath: path,
 				FileExt:      ext,
 				Content:      content,
-				LoadErr:      ReadErr,
+				LoadErr:      readErr,
 			})
 		}
+
 		return nil
 	})
 	if err != nil {

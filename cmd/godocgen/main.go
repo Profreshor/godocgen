@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
 	"github.com/Profreshor/godocgen/internal/parser"
@@ -13,48 +15,74 @@ import (
 	"github.com/Profreshor/godocgen/internal/walker"
 )
 
-func main() {
+const logo string = `
+        ▌               
+▞▀▌▞▀▖▞▀▌▞▀▖▞▀▖▞▀▌▞▀▖▛▀▖
+▚▄▌▌ ▌▌ ▌▌ ▌▌ ▖▚▄▌▛▀ ▌ ▌
+▗▄▘▝▀ ▝▀▘▝▀ ▝▀ ▗▄▘▝▀▘▘ ▘`
 
-	if len(os.Args) < 2 {
-		fmt.Println("godocgen: Please enter <project-directory>")
+func main() {
+	if err := run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, "godocgen:", err)
 		os.Exit(1)
 	}
-	inputPath := os.Args[1]
-	absPath, err := filepath.Abs(inputPath)
+}
+
+func run(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: godocgen <project-directory>")
+	}
+	absPath, err := filepath.Abs(args[1])
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 	info, err := os.Stat(absPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("godocgen: %s: No such directory\n", inputPath)
-			os.Exit(1)
-		}
-		fmt.Printf("godocgen: %s\n", err)
-		os.Exit(1)
+		return err
 	}
 	if !info.IsDir() {
-		fmt.Println("godocgen: Please enter a directory path")
-		os.Exit(1)
+		return fmt.Errorf("%s is not a directory", args[1])
 	}
-
-	project, err := walker.WalkFiles(absPath)
+	packages, err := buildDocs(absPath)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+	var page bytes.Buffer
+	if err := render.Render(&page, filepath.Base(absPath), packages); err != nil {
+		return fmt.Errorf("render: %w", err)
+	}
+	fmt.Println(logo)
+	fmt.Printf("godocgen: %d packages documented\n", len(packages))
 
-	// piles are groups of symbols per package
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(page.Bytes())
+	})
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("godocgen: serving docs at http://%s\n", listener.Addr())
+	return http.Serve(listener, mux)
+}
+
+func buildDocs(root string) ([]parser.PackageDoc, error) {
+	project, err := walker.WalkFiles(os.DirFS(root))
+	if err != nil {
+		return nil, err
+	}
 	piles := make(map[string][]parser.Symbol)
 	for _, file := range project.Files {
 		if file.LoadErr != nil {
-			fmt.Printf("Skipping %s: due to load error: %v\n", file.RelativePath, file.LoadErr)
+			fmt.Fprintf(os.Stderr, "godocgen: skipping %s: %v\n", file.RelativePath, file.LoadErr)
 			continue
 		}
 		lex, err := lexer.CreateLexer(file.Content, file.FileExt)
 		if err != nil {
-			fmt.Printf("godocgen: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "godocgen: skipping %s: %v\n", file.RelativePath, err)
+			continue
 		}
 		lex.Tokenize()
 		p := parser.CreateParser(lex.Tokens, file.Content)
@@ -66,55 +94,16 @@ func main() {
 		dir := filepath.Dir(file.RelativePath)
 		piles[dir] = append(piles[dir], syms...)
 	}
+
 	dirs := make([]string, 0, len(piles))
 	for dir := range piles {
 		dirs = append(dirs, dir)
 	}
 	sort.Strings(dirs)
 
-	var packages []parser.PackageDoc
+	packages := make([]parser.PackageDoc, 0, len(dirs))
 	for _, dir := range dirs {
 		packages = append(packages, parser.AssemblePackage(dir, piles[dir]))
 	}
-	if err := os.MkdirAll("output", 0o755); err != nil {
-		fmt.Printf("godocgen: %v\n", err)
-		os.Exit(1)
-	}
-	f, err := os.Create("output/out.html")
-	if err != nil {
-		fmt.Printf("godocgen: %v\n", err)
-		os.Exit(1)
-	}
-	defer f.Close()
-
-	if err := render.Render(f, filepath.Base(absPath), packages); err != nil {
-		fmt.Printf("godocgen: %v\n", err)
-		os.Exit(1)
-	}
-	for _, pkg := range packages {
-		fmt.Printf("== %s ==\n", pkg.Path)
-		for _, n := range pkg.Notes {
-			fmt.Println("note:", n)
-		}
-		for _, symbol := range pkg.Symbols {
-			printSymbol(symbol, 0)
-		}
-	}
-}
-
-func printSymbol(s parser.Symbol, depth int) {
-	indent := strings.Repeat("  ", depth)
-	line := s.Detail
-	if strings.Contains(line, "\n") {
-		parts := strings.Split(line, "\n")
-		line = parts[0] + "..."
-	}
-	if depth == 0 {
-		fmt.Printf("%s%-9s %s  %s  [%s]\n", indent, s.Kind, s.Name, line, s.File)
-	} else {
-		fmt.Printf("%s%-9s %s  %s\n", indent, s.Kind, s.Name, line)
-	}
-	for _, child := range s.Children {
-		printSymbol(child, depth+1)
-	}
+	return packages, nil
 }
