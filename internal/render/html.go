@@ -1,14 +1,22 @@
 package render
 
 import (
+	"embed"
 	"fmt"
 	"html"
+	"html/template"
 	"io"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/Profreshor/godocgen/internal/parser"
 )
+
+//go:embed templates/*.gohtml
+var templateFS embed.FS
+
+var pageTemplates = template.Must(template.ParseFS(templateFS, "templates/*.gohtml"))
 
 var kindOrder = []parser.SymbolKind{
 	parser.CONSTANT,
@@ -23,24 +31,21 @@ var kindOrder = []parser.SymbolKind{
 func writeIndex(pw *pageWriter, groups []kindGroup) {
 	pw.writeLine(`<div class="index">`)
 	for _, group := range groups {
-		pw.printfLine(`<p><b>%s</b>`, html.EscapeString(group.Kind.String()))
-		for i, s := range group.Symbols {
-			if i > 0 {
-				pw.write(", ")
-			}
+		pw.printfLine(`<h4>%s</h4>`, html.EscapeString(group.Kind.String()))
+		pw.writeLine(`<ul class="index-list">`)
+		for _, s := range group.Symbols {
+			pw.write(`<li>`)
 			writeIndexLink(pw, s)
 			if len(s.Children) != 0 {
 				pw.write(" (")
 				for i := range s.Children {
-					if i > 0 {
-						pw.write(", ")
-					}
 					writeIndexLink(pw, s.Children[i])
 				}
 				pw.write(")")
 			}
+			pw.writeLine(`</li>`)
 		}
-		pw.writeLine(`</p>`)
+		pw.writeLine(`</ul>`)
 	}
 	pw.writeLine(`</div>`)
 }
@@ -56,15 +61,21 @@ func writeHead(pw *pageWriter, title string) {
 	pw.writeLine(`  <meta charset="UTF-8">`)
 	pw.printfLine(`  <title>%s</title>`, html.EscapeString(title))
 	pw.writeLine(`  <style>`)
-	pw.writeLine(`    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }`)
+	pw.writeLine(`    body { font-family: system-ui, sans-serif; line-height: 1.5; display: flex; } `)
+	pw.writeLine(`    nav { width: 260px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }`)
+	pw.writeLine(`    main { flex: 1; max-width: 900px; margin: 0 auto; padding: 2rem; }`)
 	pw.writeLine(`    .symbol { margin: 1.5rem 0; border-left: 3px solid #ddd; padding-left: 1rem; }`)
 	pw.writeLine(`    .kind { color: #666; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; }`)
 	pw.writeLine(`    .name { font-weight: 600; }`)
 	pw.writeLine(`    .detail { background: #f6f8fa; padding: 0.6rem 1rem; border-radius: 6px; overflow-x: auto; }`)
 	pw.writeLine(`    .index { background: #f6f8fa; padding: 0.6rem 1rem; border-radius: 6px; overflow-x: auto; }`)
+	pw.writeLine(`    .index h4 { margin: 0.75rem 0 0.25rem; }`)
+	pw.writeLine(`    .index ul.index-list { margin: 0; }`)
 	pw.writeLine(`    .doc { margin-top: 0.75rem; white-space: pre-wrap; }`)
 	pw.writeLine(`    .meta { color: #888; font-size: 0.8em; margin-top: 0.4rem; }`)
+	pw.writeLine(`    ul.index-list { columns: 14rem; column-gap: 2rem; list-style: none; padding-left: 0; }`)
 	pw.writeLine(`    ul.symbols { list-style: none; padding-left: 0; }`)
+	pw.writeLine(`    ul.index-list li { overflow-wrap: break-word; }`)
 	pw.writeLine(`    ul.symbols ul.symbols { padding-left: 1.5rem; }`)
 	pw.writeLine(`  </style>`)
 	pw.writeLine(`</head>`)
@@ -76,30 +87,38 @@ func writeFoot(pw *pageWriter) {
 	pw.writeLine(`</html>`)
 }
 
-func siteNav(pw *pageWriter, packages []parser.PackageDoc) {
-	pw.writeLine(`<nav><ul>`)
-	pw.writeLine(`<li><a href="/">⌂ index</a></li>`)
-	for i := range packages {
-		pw.printfLine(`  <li><a href="/pkg/%s">%s</a></li>`,
-			Anchor(packages[i].Path),
-			html.EscapeString(packages[i].Path))
+func groupNav(pw *pageWriter, packages []parser.PackageDoc) {
+	pw.writeLine(`<nav>`)
+	pw.writeLine(`<p><li><a href="/">⌂ index</a></li></p>`)
+	buckets := make(map[string][]parser.PackageDoc)
+	for _, pkg := range packages {
+		parentDir := filepath.Dir(pkg.Path)
+		buckets[parentDir] = append(buckets[parentDir], pkg)
 	}
-	pw.writeLine(`</ul></nav>`)
-}
-
-func RenderIndex(w io.Writer, title string, packages []parser.PackageDoc) error {
-	pw := &pageWriter{destination: w}
-	writeHead(pw, title)
-	pw.printfLine(`<h1>%s</h1>`, html.EscapeString(title))
-	siteNav(pw, packages)
-	writeFoot(pw)
-	return pw.firstError
+	parentKeys := make([]string, 0, len(buckets))
+	for key := range buckets {
+		parentKeys = append(parentKeys, key)
+	}
+	sort.Strings(parentKeys)
+	for _, group := range parentKeys {
+		pw.writeLine(`<details open>`)
+		pw.printfLine(`  <summary>%s</summary>`, html.EscapeString(group))
+		pw.writeLine(`  <ul>`)
+		for _, pkg := range buckets[group] {
+			pw.printfLine(`  <li><a href="/pkg/%s">%s</a></li>`,
+				Anchor(pkg.Path), html.EscapeString(filepath.Base(pkg.Path)))
+		}
+		pw.writeLine(`  </ul>`)
+		pw.writeLine(`</details>`)
+	}
+	pw.writeLine(`</nav>`)
 }
 
 func RenderPackage(w io.Writer, pkg parser.PackageDoc, packages []parser.PackageDoc) error {
 	pw := &pageWriter{destination: w}
 	writeHead(pw, pkg.Name)
-	siteNav(pw, packages)
+	groupNav(pw, packages)
+	pw.writeLine(`<main>`)
 	pw.printfLine(`<section id="pkg-%s">`, Anchor(pkg.Path))
 	pw.printfLine(`<h1>%s <span class="meta">%s</span></h1>`,
 		html.EscapeString(pkg.Name),
@@ -123,6 +142,7 @@ func RenderPackage(w io.Writer, pkg parser.PackageDoc, packages []parser.Package
 		pw.writeLine("</ul>")
 	}
 	pw.writeLine(`</section>`)
+	pw.writeLine(`</main>`)
 	writeFoot(pw)
 	return pw.firstError
 }
@@ -278,3 +298,62 @@ func cleanDoc(doc string) string {
 	}
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
+
+// --------- index html/template ----------
+type navItem struct {
+	Slug  string
+	Label string
+}
+
+type navGroup struct {
+	Parent string
+	Items  []navItem
+}
+
+type indexPage struct {
+	Title string
+	Nav   []navGroup
+}
+
+type packagePage struct {
+	Title   string
+	Path    string
+	Doc     string
+	Notes   []string
+	Nav     []navGroup
+	Groups  []kindGroup
+	Imports []string
+}
+
+func buildNav(packages []parser.PackageDoc) []navGroup {
+	buckets := make(map[string][]navItem)
+	for _, pkg := range packages {
+		parent := filepath.Dir(pkg.Path)
+		buckets[parent] = append(buckets[parent], navItem{
+			Slug:  Anchor(pkg.Path),
+			Label: filepath.Base(pkg.Path),
+		})
+	}
+	keys := make([]string, 0, len(buckets))
+	for key := range buckets {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	groups := make([]navGroup, 0, len(keys))
+	for _, key := range keys {
+		groups = append(groups, navGroup{Parent: key, Items: buckets[key]})
+	}
+	return groups
+}
+
+func RenderIndex(w io.Writer, title string, packages []parser.PackageDoc) error {
+	page := indexPage{Title: title, Nav: buildNav(packages)}
+	return pageTemplates.ExecuteTemplate(w, "index.gohtml", page)
+}
+
+// func TRenderPackage(w io.Writer, pkg parser.PackageDoc, packages []parser.PackageDoc) error {
+// 	page := packagePage{
+
+// 	}
+// }
