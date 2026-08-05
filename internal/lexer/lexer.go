@@ -2,14 +2,16 @@ package lexer
 
 import (
 	"fmt"
+	"sort"
 	"unicode/utf8"
 )
 
 type Lexer struct {
-	Tokens []Token
-	source []byte
-	pos    int
-	lang   Language
+	Tokens     []Token
+	source     []byte
+	pos        int
+	lang       Language
+	lineStarts []int
 }
 
 // Initialize mutable Lexer
@@ -18,11 +20,19 @@ func CreateLexer(content []byte, ext string) (*Lexer, error) {
 	if !supported {
 		return nil, fmt.Errorf("unsupported extension: %s", ext)
 	}
+	starts := []int{0}
+	for i := range content {
+		if content[i] == '\n' {
+			starts = append(starts, i+1)
+		}
+	}
+
 	return &Lexer{
-		source: content,
-		pos:    0,
-		Tokens: make([]Token, 0),
-		lang:   lang,
+		source:     content,
+		pos:        0,
+		Tokens:     make([]Token, 0),
+		lang:       lang,
+		lineStarts: starts,
 	}, nil
 }
 
@@ -58,6 +68,13 @@ func (lex *Lexer) Tokenize() {
 
 func (lex *Lexer) isValid() bool {
 	return lex.pos < len(lex.source)
+}
+
+func (lex *Lexer) Position(offset int) (int, int) {
+	i := sort.SearchInts(lex.lineStarts, offset+1) - 1
+	line := i + 1
+	col := offset - lex.lineStarts[i] + 1
+	return line, col
 }
 
 func (lex *Lexer) isPunctOrOper(r rune) bool {

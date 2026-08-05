@@ -1,6 +1,7 @@
 package lexer_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
@@ -141,6 +142,35 @@ func TestTokenize(t *testing.T) {
 				if got[i] != tc.want[i] {
 					t.Errorf("token %d: got %v, want %v", i, got[i], tc.want[i])
 				}
+			}
+		})
+	}
+}
+
+func TestPosition(t *testing.T) {
+	src := "ab\ncdé\nf"
+	cases := []struct {
+		offset   int
+		wantLine int
+		wantCol  int
+	}{
+		{0, 1, 1},
+		{2, 1, 3},
+		{3, 2, 1},
+		{5, 2, 3},
+		{7, 2, 5},
+		{8, 3, 1},
+	}
+	for _, row := range cases {
+		t.Run(fmt.Sprintf("offset_%d", row.offset), func(t *testing.T) {
+			lex, err := lexer.CreateLexer([]byte(src), ".go")
+			if err != nil {
+				t.Fatalf("CreateLexer: %v", err)
+			}
+			line, col := lex.Position(row.offset)
+			if line != row.wantLine || col != row.wantCol {
+				t.Errorf("offset %d: got line %d, col %d; want line %d, col %d",
+					row.offset, line, col, row.wantLine, row.wantCol)
 			}
 		})
 	}
