@@ -1,5 +1,7 @@
 package lexer
 
+import "unicode"
+
 type Pos struct {
 	Byte int
 }
@@ -54,31 +56,19 @@ func (k Tokenkind) String() string {
 }
 
 // Handle whitespaces
-func isSpace(char byte) bool {
-	if char == ' ' || char == '\t' || char == '\n' || char == '\r' {
-		return true
-	}
-	return false
+func isSpace(r rune) bool {
+	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
 // Handle Identifiers
-func isIdent(char byte) bool {
-	if isLetter(char) {
-		return true
-	}
-	return false
+func isIdent(r rune) bool {
+	return isLetter(r)
 }
 
-func isLetter(char byte) bool {
-	if ('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z') || char == '_' {
-		return true
-	}
-	return false
+func isLetter(r rune) bool {
+	return unicode.IsLetter(r) || r == '_'
 }
 
-func isDigit(char byte) bool {
-	if char >= '0' && char <= '9' {
-		return true
-	}
-	return false
+func isDigit(r rune) bool {
+	return '0' <= r && r <= '9'
 }

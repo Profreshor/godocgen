@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"fmt"
+	"unicode/utf8"
 )
 
 type Lexer struct {
@@ -30,24 +31,25 @@ func (lex *Lexer) Tokenize() {
 	for lex.isValid() {
 		kind := ILLEGAL
 		start := lex.pos
-		switch ch := lex.peek(); {
-		case isSpace(ch):
-			lex.pos++
+		r, width := lex.peekRune()
+		switch {
+		case isSpace(r):
+			lex.pos += width
 			continue
-		case isIdent(ch):
+		case isIdent(r):
 			kind = lex.consumeIdent(start)
-		case isDigit(ch):
+		case isDigit(r):
 			kind = lex.consumeDigit()
-		case ch == '`':
+		case r == '`':
 			kind = lex.consumeDelimited('`', false)
-		case ch == '"':
+		case r == '"':
 			kind = lex.consumeDelimited('"', true)
-		case ch == '\'':
+		case r == '\'':
 			kind = lex.consumeDelimited('\'', true)
-		case lex.isPunctOrOper(ch):
+		case lex.isPunctOrOper(r):
 			kind = lex.consumePunctOrOper()
 		default:
-			lex.pos++
+			lex.pos += width
 		}
 		lex.emitToken(kind, start)
 	}
@@ -58,8 +60,8 @@ func (lex *Lexer) isValid() bool {
 	return lex.pos < len(lex.source)
 }
 
-func (lex *Lexer) isPunctOrOper(char byte) bool {
-	if kind, exists := lex.lang.Literals[string(char)]; exists {
+func (lex *Lexer) isPunctOrOper(r rune) bool {
+	if kind, exists := lex.lang.Literals[string(r)]; exists {
 		if kind == PUNCT || kind == OPERATOR {
 			return true
 		}
@@ -75,9 +77,20 @@ func (lex *Lexer) peek() byte {
 	return lex.source[lex.pos]
 }
 
+func (lex *Lexer) peekRune() (rune, int) {
+	if !lex.isValid() {
+		return 0, 0
+	}
+	return utf8.DecodeRune(lex.source[lex.pos:])
+}
+
 func (lex *Lexer) consumeIdent(start int) Tokenkind {
-	for lex.isValid() && (isLetter(lex.peek()) || isDigit(lex.peek())) {
-		lex.pos++
+	for lex.isValid() {
+		r, width := lex.peekRune()
+		if !(isLetter(r) || isDigit(r)) {
+			break
+		}
+		lex.pos += width
 	}
 	literal := string(lex.source[start:lex.pos])
 	if kind, found := lex.lang.Literals[literal]; found {
@@ -87,7 +100,7 @@ func (lex *Lexer) consumeIdent(start int) Tokenkind {
 }
 
 func (lex *Lexer) consumeDigit() Tokenkind {
-	for lex.isValid() && isDigit(lex.peek()) || lex.peek() == '.' {
+	for (lex.isValid() && isDigit(rune(lex.peek()))) || lex.peek() == '.' {
 		lex.pos++
 	}
 	return NUMBER

@@ -21,9 +21,7 @@ var kindOrder = []parser.SymbolKind{
 	parser.METHOD,
 }
 
-func Render(w io.Writer, title string, packages []parser.PackageDoc) error {
-	pw := &pageWriter{destination: w}
-
+func writeHead(pw *pageWriter, title string) {
 	pw.writeLine(`<!DOCTYPE html>`)
 	pw.writeLine(`<html lang="en">`)
 	pw.writeLine(`<head>`)
@@ -42,29 +40,39 @@ func Render(w io.Writer, title string, packages []parser.PackageDoc) error {
 	pw.writeLine(`  </style>`)
 	pw.writeLine(`</head>`)
 	pw.writeLine(`<body>`)
-	pw.printfLine(`<h1>%s</h1>`, html.EscapeString(title))
+}
 
+func writeFoot(pw *pageWriter) {
+	pw.writeLine(`</body>`)
+	pw.writeLine(`</html>`)
+}
+
+func siteNav(pw *pageWriter, packages []parser.PackageDoc) {
 	pw.writeLine(`<nav><ul>`)
+	pw.writeLine(`<li><a href="/">⌂ index</a></li>`)
 	for i := range packages {
-		pw.printfLine(`  <li><a href="#pkg-%s">%s</a></li>`,
-			anchor(packages[i].Path),
+		pw.printfLine(`  <li><a href="/pkg/%s">%s</a></li>`,
+			Anchor(packages[i].Path),
 			html.EscapeString(packages[i].Path))
 	}
 	pw.writeLine(`</ul></nav>`)
+}
 
-	for i := range packages {
-		pw.renderPackage(&packages[i])
-	}
-
-	pw.writeLine(`</body>`)
-	pw.writeLine(`</html>`)
-
+func RenderIndex(w io.Writer, title string, packages []parser.PackageDoc) error {
+	pw := &pageWriter{destination: w}
+	writeHead(pw, title)
+	pw.printfLine(`<h1>%s</h1>`, html.EscapeString(title))
+	siteNav(pw, packages)
+	writeFoot(pw)
 	return pw.firstError
 }
 
-func (pw *pageWriter) renderPackage(pkg *parser.PackageDoc) {
-	pw.printfLine(`<section id="pkg-%s">`, anchor(pkg.Path))
-	pw.printfLine(`<h2>%s <span class="meta">%s</span></h2>`,
+func RenderPackage(w io.Writer, pkg parser.PackageDoc, packages []parser.PackageDoc) error {
+	pw := &pageWriter{destination: w}
+	writeHead(pw, pkg.Name)
+	siteNav(pw, packages)
+	pw.printfLine(`<section id="pkg-%s">`, Anchor(pkg.Path))
+	pw.printfLine(`<h1>%s <span class="meta">%s</span></h1>`,
 		html.EscapeString(pkg.Name),
 		html.EscapeString(pkg.Path))
 	if pkg.Doc != "" {
@@ -75,9 +83,11 @@ func (pw *pageWriter) renderPackage(pkg *parser.PackageDoc) {
 	}
 	pw.renderGroups(groupAndSort(pkg.Symbols))
 	pw.writeLine(`</section>`)
+	writeFoot(pw)
+	return pw.firstError
 }
 
-func anchor(path string) string {
+func Anchor(path string) string {
 	return strings.ReplaceAll(path, "/", "-")
 }
 

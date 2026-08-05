@@ -47,17 +47,36 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var page bytes.Buffer
-	if err := render.Render(&page, filepath.Base(absPath), packages); err != nil {
-		return fmt.Errorf("render: %w", err)
+
+	pages := make(map[string][]byte)
+	var index bytes.Buffer
+	if err := render.RenderIndex(&index, filepath.Base(absPath), packages); err != nil {
+		return fmt.Errorf("render index: %w", err)
 	}
+	for _, pkg := range packages {
+		var buf bytes.Buffer
+		if err := render.RenderPackage(&buf, pkg, packages); err != nil {
+			return fmt.Errorf("render %s: %w", pkg.Path, err)
+		}
+		pages[render.Anchor(pkg.Path)] = buf.Bytes()
+	}
+
 	fmt.Println(logo)
 	fmt.Printf("godocgen: %d packages documented\n", len(packages))
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(page.Bytes())
+		w.Write(index.Bytes())
+	})
+	mux.HandleFunc("/pkg/{slug}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := pages[r.PathValue("slug")]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(body)
 	})
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")

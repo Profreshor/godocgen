@@ -113,6 +113,21 @@ func TestTokenize(t *testing.T) {
 				{lexer.EOF, ""},
 			},
 		},
+		{
+			name: "unicode identifier",
+			src:  "añadir",
+			want: []tokenView{{lexer.IDENT, "añadir"}, {lexer.EOF, ""}},
+		},
+		{
+			name: "CJK identifier",
+			src:  "名前",
+			want: []tokenView{{lexer.IDENT, "名前"}, {lexer.EOF, ""}},
+		},
+		{
+			name: "unicode inside string already works",
+			src:  `"héllo 🎉"`,
+			want: []tokenView{{lexer.STRING, `"héllo 🎉"`}, {lexer.EOF, ""}},
+		},
 	}
 
 	for _, tc := range cases {
