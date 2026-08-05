@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/Profreshor/godocgen/internal/lexer"
 	"github.com/Profreshor/godocgen/internal/parser"
@@ -98,6 +99,9 @@ func buildDocs(root string) ([]parser.PackageDoc, error) {
 			fmt.Fprintf(os.Stderr, "godocgen: skipping %s: %v\n", file.RelativePath, file.LoadErr)
 			continue
 		}
+		if file.FileExt == ".go" && strings.HasSuffix(file.RelativePath, "_test.go") {
+			continue
+		}
 		lex, err := lexer.CreateLexer(file.Content, file.FileExt)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "godocgen: skipping %s: %v\n", file.RelativePath, err)
@@ -109,6 +113,8 @@ func buildDocs(root string) ([]parser.PackageDoc, error) {
 		syms := p.Symbols()
 		for i := range syms {
 			syms[i].File = file.RelativePath
+			line, _ := lex.Position(syms[i].Span.Start.Byte)
+			syms[i].Line = line
 		}
 		dir := filepath.Dir(file.RelativePath)
 		piles[dir] = append(piles[dir], syms...)

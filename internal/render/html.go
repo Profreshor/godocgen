@@ -11,7 +11,6 @@ import (
 )
 
 var kindOrder = []parser.SymbolKind{
-	parser.PACKAGE,
 	parser.CONSTANT,
 	parser.VARIABLE,
 	parser.FUNCTION,
@@ -19,6 +18,35 @@ var kindOrder = []parser.SymbolKind{
 	parser.INTERFACE,
 	parser.STRUCT,
 	parser.METHOD,
+}
+
+func writeIndex(pw *pageWriter, groups []kindGroup) {
+	pw.writeLine(`<div class="index">`)
+	for _, group := range groups {
+		pw.printfLine(`<p><b>%s</b>`, html.EscapeString(group.Kind.String()))
+		for i, s := range group.Symbols {
+			if i > 0 {
+				pw.write(", ")
+			}
+			writeIndexLink(pw, s)
+			if len(s.Children) != 0 {
+				pw.write(" (")
+				for i := range s.Children {
+					if i > 0 {
+						pw.write(", ")
+					}
+					writeIndexLink(pw, s.Children[i])
+				}
+				pw.write(")")
+			}
+		}
+		pw.writeLine(`</p>`)
+	}
+	pw.writeLine(`</div>`)
+}
+
+func writeIndexLink(pw *pageWriter, s parser.Symbol) {
+	pw.printf(`<a href="#%s">%s</a>`, html.EscapeString(symbolID(s)), html.EscapeString(s.Name))
 }
 
 func writeHead(pw *pageWriter, title string) {
@@ -33,6 +61,7 @@ func writeHead(pw *pageWriter, title string) {
 	pw.writeLine(`    .kind { color: #666; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; }`)
 	pw.writeLine(`    .name { font-weight: 600; }`)
 	pw.writeLine(`    .detail { background: #f6f8fa; padding: 0.6rem 1rem; border-radius: 6px; overflow-x: auto; }`)
+	pw.writeLine(`    .index { background: #f6f8fa; padding: 0.6rem 1rem; border-radius: 6px; overflow-x: auto; }`)
 	pw.writeLine(`    .doc { margin-top: 0.75rem; white-space: pre-wrap; }`)
 	pw.writeLine(`    .meta { color: #888; font-size: 0.8em; margin-top: 0.4rem; }`)
 	pw.writeLine(`    ul.symbols { list-style: none; padding-left: 0; }`)
@@ -81,7 +110,18 @@ func RenderPackage(w io.Writer, pkg parser.PackageDoc, packages []parser.Package
 	for _, note := range pkg.Notes {
 		pw.printfLine(`<div class="note">⚠ %s</div>`, html.EscapeString(note))
 	}
-	pw.renderGroups(groupAndSort(pkg.Symbols))
+	groups := groupAndSort(pkg.Symbols)
+	writeIndex(pw, groups)
+	pw.renderGroups(groups)
+	imports := collectImports(pkg.Symbols)
+	if len(imports) > 0 {
+		pw.writeLine(`<h3>Imports</h3>`)
+		pw.writeLine(`<ul class="imports">`)
+		for _, name := range imports {
+			pw.printfLine("<li>%s</li>", html.EscapeString(name))
+		}
+		pw.writeLine("</ul>")
+	}
 	pw.writeLine(`</section>`)
 	writeFoot(pw)
 	return pw.firstError
@@ -134,13 +174,13 @@ func (pw *pageWriter) renderSymbols(symbols []parser.Symbol) {
 	}
 	pw.writeLine(`<ul class="symbols">`)
 	for i := range symbols {
-		pw.renderSymbol(&symbols[i])
+		pw.renderSymbol(symbols[i])
 	}
 	pw.writeLine(`</ul>`)
 }
 
-func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
-	pw.writeLine(`<li class="symbol">`)
+func (pw *pageWriter) renderSymbol(s parser.Symbol) {
+	pw.printfLine(`<li class="symbol" id="%s">`, html.EscapeString(symbolID(s)))
 
 	pw.printfLine(`  <div><span class="kind">%s</span> <span class="name"><code>%s</code></span></div>`,
 		html.EscapeString(s.Kind.String()),
@@ -159,8 +199,8 @@ func (pw *pageWriter) renderSymbol(s *parser.Symbol) {
 		pw.writeEscaped(cleanDoc(s.Doc))
 		pw.writeLine(`</div>`)
 	}
-	if s.File != "" {
-		pw.printfLine(`  <div class="meta">%s</div>`, html.EscapeString(s.File))
+	if s.File != "" && s.Line != 0 {
+		pw.printfLine(`  <div class="meta">%s:%d</div>`, html.EscapeString(s.File), s.Line)
 	}
 	if len(s.Children) > 0 {
 		pw.renderSymbols(s.Children)
@@ -174,6 +214,28 @@ type kindGroup struct {
 	Symbols []parser.Symbol
 }
 
+func symbolID(s parser.Symbol) string {
+	if s.Owner != "" {
+		return s.Owner + "." + s.Name
+	}
+	return s.Kind.String() + "-" + s.Name
+}
+
+func collectImports(symbols []parser.Symbol) []string {
+	unique := make(map[string]bool, len(symbols))
+	for _, s := range symbols {
+		if s.Kind == parser.PACKAGE {
+			unique[s.Name] = true
+		}
+	}
+	var pkgNames []string
+	for n := range unique {
+		pkgNames = append(pkgNames, n)
+	}
+	sort.Strings(pkgNames)
+	return pkgNames
+}
+
 func (pw *pageWriter) renderGroups(groups []kindGroup) {
 	for _, g := range groups {
 		pw.printfLine(`<h3>%s</h3>`, html.EscapeString(g.Kind.String()))
@@ -184,7 +246,7 @@ func (pw *pageWriter) renderGroups(groups []kindGroup) {
 func groupAndSort(symbols []parser.Symbol) []kindGroup {
 	byKind := make(map[parser.SymbolKind][]parser.Symbol)
 	for _, s := range symbols {
-		if s.Kind == parser.MODULE {
+		if s.Kind == parser.MODULE || s.Kind == parser.PACKAGE {
 			continue
 		}
 		byKind[s.Kind] = append(byKind[s.Kind], s)
@@ -195,24 +257,10 @@ func groupAndSort(symbols []parser.Symbol) []kindGroup {
 		})
 	}
 	var groups []kindGroup
-	seen := make(map[parser.SymbolKind]bool)
 	for _, k := range kindOrder {
 		if list, ok := byKind[k]; ok {
 			groups = append(groups, kindGroup{Kind: k, Symbols: list})
-			seen[k] = true
 		}
-	}
-	var extra []parser.SymbolKind
-	for k := range byKind {
-		if !seen[k] {
-			extra = append(extra, k)
-		}
-	}
-	sort.Slice(extra, func(i, j int) bool {
-		return extra[i].String() < extra[j].String()
-	})
-	for _, k := range extra {
-		groups = append(groups, kindGroup{Kind: k, Symbols: byKind[k]})
 	}
 	return groups
 }

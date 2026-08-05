@@ -7,6 +7,7 @@ type Symbol struct {
 	Name     string
 	Span     lexer.Span
 	Selector lexer.Span
+	Line     int
 	Doc      string
 	Detail   string
 	Owner    string
