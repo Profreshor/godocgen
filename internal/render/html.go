@@ -13,10 +13,10 @@ import (
 	"github.com/Profreshor/godocgen/internal/parser"
 )
 
-//go:embed templates/*.gohtml
+//go:embed templates/*.html
 var templateFS embed.FS
 
-var pageTemplates = template.Must(template.ParseFS(templateFS, "templates/*.gohtml"))
+var pageTemplates = template.Must(template.ParseFS(templateFS, "templates/*.html"))
 
 var kindOrder = []parser.SymbolKind{
 	parser.CONSTANT,
