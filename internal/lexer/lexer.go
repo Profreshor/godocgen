@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"unicode/utf8"
@@ -14,26 +15,28 @@ type Lexer struct {
 	lineStarts []int
 }
 
-// Initialize mutable Lexer
-func CreateLexer(content []byte, ext string) (*Lexer, error) {
-	lang, supported := SupportedLanguages[ext]
-	if !supported {
-		return nil, fmt.Errorf("unsupported extension: %s", ext)
-	}
+func NewLexer(content []byte, lang Language) *Lexer {
 	starts := []int{0}
 	for i := range content {
 		if content[i] == '\n' {
 			starts = append(starts, i+1)
 		}
 	}
-
 	return &Lexer{
 		source:     content,
 		pos:        0,
 		Tokens:     make([]Token, 0),
 		lang:       lang,
 		lineStarts: starts,
-	}, nil
+	}
+}
+
+func CreateLexer(content []byte, ext string) (*Lexer, error) {
+	lang, supported := supportedLanguages[ext]
+	if !supported {
+		return nil, fmt.Errorf("unsupported extension: %s", ext)
+	}
+	return NewLexer(content, lang), nil
 }
 
 // Tokenize input file
@@ -42,6 +45,7 @@ func (lex *Lexer) Tokenize() {
 		kind := ILLEGAL
 		start := lex.pos
 		r, width := lex.peekRune()
+		str, isString := lex.stringSyntax(r)
 		switch {
 		case isSpace(r):
 			lex.pos += width
@@ -50,12 +54,10 @@ func (lex *Lexer) Tokenize() {
 			kind = lex.consumeIdent(start)
 		case isDigit(r):
 			kind = lex.consumeDigit()
-		case r == '`':
-			kind = lex.consumeDelimited('`', false)
-		case r == '"':
-			kind = lex.consumeDelimited('"', true)
-		case r == '\'':
-			kind = lex.consumeDelimited('\'', true)
+		case lex.startsComment():
+			kind = lex.consumeComment()
+		case isString:
+			kind = lex.consumeDelimited(str.Opener, str.Escapes)
 		case lex.isPunctOrOper(r):
 			kind = lex.consumePunctOrOper()
 		default:
@@ -101,6 +103,15 @@ func (lex *Lexer) peekRune() (rune, int) {
 	return utf8.DecodeRune(lex.source[lex.pos:])
 }
 
+func (lex *Lexer) stringSyntax(r rune) (StringSyntax, bool) {
+	for _, s := range lex.lang.Strings {
+		if rune(s.Opener) == r {
+			return s, true
+		}
+	}
+	return StringSyntax{}, false
+}
+
 func (lex *Lexer) consumeIdent(start int) Tokenkind {
 	for lex.isValid() {
 		r, width := lex.peekRune()
@@ -121,6 +132,38 @@ func (lex *Lexer) consumeDigit() Tokenkind {
 		lex.pos++
 	}
 	return NUMBER
+}
+
+func (lex *Lexer) startsComment() bool {
+	rest := lex.source[lex.pos:]
+	if lex.lang.LineComment != "" && bytes.HasPrefix(rest, []byte(lex.lang.LineComment)) {
+		return true
+	}
+	if lex.lang.BlockComment.Open != "" && bytes.HasPrefix(rest, []byte(lex.lang.BlockComment.Open)) {
+		return true
+	}
+	return false
+}
+
+func (lex *Lexer) consumeComment() Tokenkind {
+	rest := lex.source[lex.pos:]
+	if lex.lang.LineComment != "" && bytes.HasPrefix(rest, []byte(lex.lang.LineComment)) {
+		lex.pos += len(lex.lang.LineComment)
+		for lex.isValid() && lex.source[lex.pos] != '\n' {
+			lex.pos++
+		}
+		return COMMENT
+	}
+	lex.pos += len(lex.lang.BlockComment.Open)
+	closer := []byte(lex.lang.BlockComment.Close)
+	for lex.isValid() {
+		if bytes.HasPrefix(lex.source[lex.pos:], closer) {
+			lex.pos += len(closer)
+			return COMMENT
+		}
+		lex.pos++
+	}
+	return ILLEGAL
 }
 
 func (lex *Lexer) consumeDelimited(closer byte, allowEscapes bool) Tokenkind {
@@ -156,23 +199,6 @@ func (lex *Lexer) consumePunctOrOper() Tokenkind {
 	}
 	if remaining >= 2 {
 		twoChars := string(lex.source[lex.pos : lex.pos+2])
-		if twoChars == "//" {
-			lex.pos += 2
-			for lex.isValid() && lex.source[lex.pos] != '\n' {
-				lex.pos++
-			}
-			return COMMENT
-		}
-		if twoChars == "/*" {
-			lex.pos += 2
-			for lex.isValid() {
-				if len(lex.source)-lex.pos >= 2 && string(lex.source[lex.pos:lex.pos+2]) == "*/" {
-					lex.pos += 2
-					return COMMENT
-				}
-				lex.pos++
-			}
-		}
 		if kind, exists := lex.lang.Literals[twoChars]; exists && (kind == PUNCT || kind == OPERATOR) {
 			lex.pos += 2
 			return kind

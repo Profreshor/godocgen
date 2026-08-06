@@ -114,7 +114,7 @@ func TestParseTable(t *testing.T) {
 		},
 		{
 			name: "generic type",
-			src:  "type List[T any] struct{...}",
+			src:  "type List[T any] struct{}",
 			want: []symView{
 				{parser.STRUCT, "List", ""},
 			},

@@ -1,16 +1,37 @@
 package lexer
 
-var SupportedLanguages = map[string]Language{
-	".go": Go,
+var supportedLanguages = map[string]Language{
+	".go": goLang,
 }
 
 type Language struct {
-	Name     string
-	Literals map[string]Tokenkind
+	Name         string
+	LineComment  string
+	BlockComment BlockSyntax
+	Strings      []StringSyntax
+	Literals     map[string]Tokenkind
 }
 
-var Go = Language{
-	Name: "Go",
+type StringSyntax struct {
+	Opener  byte
+	Escapes bool
+}
+
+type BlockSyntax struct {
+	Open  string
+	Close string
+}
+
+// Language definitions are read-only after init, never mutated
+var goLang = Language{
+	Name:         "Go",
+	LineComment:  "//",
+	BlockComment: BlockSyntax{Open: "/*", Close: "*/"},
+	Strings: []StringSyntax{
+		{Opener: '`', Escapes: false},
+		{Opener: '"', Escapes: true},
+		{Opener: '\'', Escapes: true},
+	},
 	Literals: map[string]Tokenkind{
 		"break":       KEYWORD,
 		"case":        KEYWORD,

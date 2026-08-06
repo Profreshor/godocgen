@@ -12,12 +12,40 @@ type tokenView struct {
 	Text string
 }
 
+var toy = lexer.Language{
+	Name:        "Toy",
+	LineComment: "#",
+	Strings:     []lexer.StringSyntax{{Opener: '\'', Escapes: false}},
+	Literals: map[string]lexer.Tokenkind{
+		"type": lexer.KEYWORD,
+		"var":  lexer.KEYWORD,
+		"(":    lexer.PUNCT,
+		"[":    lexer.PUNCT,
+		"{":    lexer.PUNCT,
+	},
+}
+
 func lexSource(t *testing.T, src string) []tokenView {
 	t.Helper()
 	lex, err := lexer.CreateLexer([]byte(src), ".go")
 	if err != nil {
 		t.Fatalf("CreateLexer: %v", err)
 	}
+	lex.Tokenize()
+	views := make([]tokenView, 0, len(lex.Tokens))
+	for _, tok := range lex.Tokens {
+		views = append(views, tokenView{
+			Kind: tok.Kind,
+			Text: src[tok.Span.Start.Byte:tok.Span.End.Byte],
+		})
+	}
+	return views
+}
+
+func lexToy(t *testing.T, src string) []tokenView {
+	t.Helper()
+	lex := lexer.NewLexer([]byte(src), toy)
+
 	lex.Tokenize()
 	views := make([]tokenView, 0, len(lex.Tokens))
 	for _, tok := range lex.Tokens {
@@ -171,6 +199,61 @@ func TestPosition(t *testing.T) {
 			if line != row.wantLine || col != row.wantCol {
 				t.Errorf("offset %d: got line %d, col %d; want line %d, col %d",
 					row.offset, line, col, row.wantLine, row.wantCol)
+			}
+		})
+	}
+}
+
+func TestLanguageLex(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want []tokenView
+	}{
+		{
+			name: "line comment test",
+			src:  "# This is a python comment",
+			want: []tokenView{
+				{lexer.COMMENT, "# This is a python comment"},
+				{lexer.EOF, ""},
+			},
+		},
+		{
+			name: "string test",
+			src:  "'hi'",
+			want: []tokenView{
+				{lexer.STRING, "'hi'"},
+				{lexer.EOF, ""},
+			},
+		},
+		{
+			name: "toy string ignores backslash",
+			src:  "'a\\'",
+			want: []tokenView{
+				{lexer.STRING, "'a\\'"},
+				{lexer.EOF, ""},
+			},
+		},
+		{
+			name: "keyword test",
+			src:  "type",
+			want: []tokenView{
+				{lexer.KEYWORD, "type"},
+				{lexer.EOF, ""},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lexToy(t, tt.src)
+			if len(got) != len(tt.want) {
+				t.Fatalf("token count: got %d, want %d\n  got:  %v\n  want: %v",
+					len(got), len(tt.want), got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("token %d: got %v, want %v", i, got[i], tt.want[i])
+				}
 			}
 		})
 	}
