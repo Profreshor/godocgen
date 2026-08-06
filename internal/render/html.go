@@ -113,6 +113,9 @@ func buildNav(packages []parser.PackageDoc) []navGroup {
 	buckets := make(map[string][]navItem)
 	for _, pkg := range packages {
 		parent := filepath.Dir(pkg.Path)
+		if parent == "." {
+			parent = "/"
+		}
 		buckets[parent] = append(buckets[parent], navItem{
 			Slug:  Anchor(pkg.Path),
 			Label: filepath.Base(pkg.Path),
