@@ -1,5 +1,50 @@
 {{template "head" .Title}}
 {{template "nav" .Nav}}
 <main>
-<section id="pkg-{{.Path}}">
+    <section>
+        <h1>{{.Title}} <span class="meta">{{.Path}}</span></h1>
+        {{if .Doc}}<p class="doc">{{.Doc}}</p>{{end}}
+        {{range .Notes}}<div class="note">⚠ {{.}}</div>{{end}}
+        <div class="index">
+            {{range .Groups}}
+            <h4>{{.Kind}}</h4>
+            <ul class="index-list">
+                {{range .Symbols}}
+                <li>
+                    <a href="#{{symbolID .}}">{{.Name}}</a>{{if .Children}} ({{range $i, $child := .Children}}{{if $i}},
+                    {{end}}<a href="#{{symbolID $child}}">{{$child.Name}}</a>{{end}}){{end}}
+                </li>
+                {{end}}
+            </ul>
+            {{end}}
+        </div>
+        {{range .Groups}}
+        <h3>{{.Kind}}</h3>
+        {{template "symbols" .Symbols}}
+        {{end}}
+        {{if .Imports}}
+        <h3>Imports</h3>
+        <ul class="imports">
+            {{range .Imports}}<li>{{.}}</li>{{end}}
+        </ul>
+        {{end}}
+    </section>
+</main>
 {{template "foot"}}
+
+{{define "symbols"}}
+<ul class="symbols">
+    {{range .}}
+    <li class="symbol" id="{{symbolID .}}">
+        <div><span class="kind">{{.Kind}}</span> <span class="name"><code>{{.Name}}</code></span></div>
+        {{if .Owner}}<div class="meta">owner: <code>{{.Owner}}</code></div>{{end}}
+        {{if .Detail}}
+        <pre class="detail"><code>{{.Detail}}</code></pre>
+        {{end}}
+        {{if .Doc}}<div class="doc">{{cleanDoc .Doc}}</div>{{end}}
+        {{if and .File .Line}}<div class="meta">{{.File}}:{{.Line}}</div>{{end}}
+        {{if .Children}}{{template "symbols" .Children}}{{end}}
+    </li>
+    {{end}}
+</ul>
+{{end}}
