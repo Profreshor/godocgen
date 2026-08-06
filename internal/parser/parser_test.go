@@ -40,7 +40,7 @@ func TestDocOnLastDeclaration(t *testing.T) {
 }
 
 func TestDocOnNonLastDeclaration(t *testing.T) {
-	src := "package demo\n\n// LastVar is the final declaration.\nvar LastVar = \n\nfunc Trailing() {}\n"
+	src := "package demo\n\n// LastVar is the final declaration.\nvar LastVar = 1\n\nfunc Trailing() {}\n"
 	got := findSymbol(t, parseSource(t, src), "LastVar")
 	if !strings.Contains(got.Doc, "final declaration") {
 		t.Errorf("doc missing even with trailing declaration: got Doc = %q", got.Doc)
