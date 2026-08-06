@@ -307,7 +307,7 @@ func (p *Parser) collectDoc(start int) string {
 		if p.tokens[i].Kind != lexer.COMMENT {
 			break
 		}
-		if p.newlineCount(i+1) == 2 {
+		if p.newlineCount(i+1) >= 2 {
 			break
 		}
 		if p.newlineCount(i) == 0 {

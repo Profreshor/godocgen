@@ -154,3 +154,99 @@ func TestParseTable(t *testing.T) {
 		})
 	}
 }
+
+func TestDocAttachmentTable(t *testing.T) {
+	tests := []struct {
+		name    string
+		src     string
+		symbol  string
+		wantDoc string
+	}{
+		{
+			name: "touching comment attaches",
+			src: `package demo
+
+// Alpha does things.
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "// Alpha does things.",
+		},
+		{
+			name: "blank line orphans",
+			src: `// Not Alpha's doc.
+				  
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "",
+		},
+		{
+			name: "multi-line block travels whole",
+			src: `package demo
+
+// Alpha does things.
+// Carefully.
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "// Alpha does things.\n// Carefully.",
+		},
+		{
+			name: "blank line inside the block splits it",
+			src: `package demo
+
+// Stale note.
+
+// Alpha does things.
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "// Alpha does things.",
+		},
+		{
+			name: "trailing comment doesn't leak down",
+			src: `package demo
+
+var Alpha = 1 // Alpha does things.
+var Beta = 2`,
+			symbol:  "Beta",
+			wantDoc: "",
+		},
+		{
+			name: "doc doesn't leak past a declaration",
+			src: `package demo
+
+// Alpha does things.
+var Alpha = 1 
+var Beta = 2`,
+			symbol:  "Beta",
+			wantDoc: "",
+		},
+		{
+			name: "block comment attaches",
+			src: `package demo
+
+/* Alpha does things. */
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "/* Alpha does things. */",
+		},
+		{
+			name: "double blank line also orphans",
+			src: `package demo
+
+// Not Alpha's doc.
+
+
+var Alpha = 1`,
+			symbol:  "Alpha",
+			wantDoc: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := findSymbol(t, parseSource(t, tt.src), tt.symbol)
+			if s.Doc != tt.wantDoc {
+				t.Errorf("doc: got %q, want %q", s.Doc, tt.wantDoc)
+			}
+		})
+	}
+}
